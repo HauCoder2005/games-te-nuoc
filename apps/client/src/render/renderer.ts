@@ -1,5 +1,5 @@
 import {
-  balloonHeight, activeCovers, CHARACTER_VARIANTS, homeZone, raftRect, RAFT_CENTER, TEAM_COLORS,
+  balloonHeight, activeCovers, CHARACTER_VARIANTS, homeZone, POOL_RECT, raftRect, RAFT_CENTER, TEAM_COLORS,
   TILE, VIEW_H, VIEW_W,
 } from '@te-nuoc/shared';
 import type { GameEvent, PlayerState, World } from '@te-nuoc/shared';
@@ -170,9 +170,21 @@ export function createRenderer(canvas: HTMLCanvasElement, overlay: HTMLCanvasEle
       if (!drawFrame(context, bank?.image('bg') ?? null, 0, 0)) {
         context.fillStyle = '#1FA3D1'; context.fillRect(0, 0, VIEW_W, VIEW_H);
       }
-      for (let y = 60; y < 338; y += 32) for (let x = 24; x < 616; x += 32) {
-        drawFrame(context, bank?.frame('water_ripple', 'loop', view.time) ?? null, x, y);
+      context.save();
+      context.beginPath();
+      context.rect(
+        POOL_RECT.x0,
+        POOL_RECT.y0,
+        POOL_RECT.x1 - POOL_RECT.x0,
+        POOL_RECT.y1 - POOL_RECT.y0,
+      );
+      context.clip();
+      for (let y = POOL_RECT.y0; y < POOL_RECT.y1; y += 32) {
+        for (let x = POOL_RECT.x0; x < POOL_RECT.x1; x += 32) {
+          drawFrame(context, bank?.frame('water_ripple', 'loop', view.time) ?? null, x, y);
+        }
       }
+      context.restore();
       drawRaft(context, view, bank);
       for (const player of view.players) {
         if (player.status === 'respawning') continue;
