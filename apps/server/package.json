@@ -13,7 +13,7 @@
     "start": "node build/index.js",
     "loadtest": "tsx loadtest/example.ts --room my_room --numClients 2",
     "build": "tsc -p tsconfig.json --noEmit && esbuild src/index.ts --bundle --platform=node --format=esm --outfile=build/index.js --external:colyseus --external:@colyseus/* --external:express",
-    "test": "vitest run --pool=threads test",
+    "test": "vitest run --pool=threads --no-file-parallelism test",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "author": "",

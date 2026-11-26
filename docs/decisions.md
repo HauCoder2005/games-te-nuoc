@@ -7,3 +7,4 @@ Mỗi dòng: `YYYY-MM-DD · Task N · quyết định · lý do`.
 2026-11-26 · Task 7 · Dùng các câu “Thao tác quá nhanh”, “Chỉ chủ phòng được làm việc này”, “Yêu cầu không hợp lệ” cho ba mã lỗi chưa có câu trong spec · Cần trả lỗi ngắn bằng tiếng Việt cho đủ ErrorCode của plan.
 2026-11-26 · Task 9 · `killFeedLine` nhận thêm bản đồ đội tùy chọn để tô tên đúng phe · GameEvent `fall` và bản đồ tên không chứa đội, dù spec yêu cầu tô tên theo đội.
 2026-11-26 · Task 10 · Build server bằng esbuild thành Node ESM, gộp mã shared; chạy Vitest bằng thread pool · Shared dùng module resolution bundler, còn khung Colyseus sinh sẵn dùng NodeNext và gửi tín hiệu process.send gây xung đột với fork của Vitest.
+2026-11-26 · Task 11 · Tạo mã phòng bằng `crypto.randomInt` và giữ tập mã đang cấp phát trong tiến trình · Mã riêng cần khó đoán và tránh hai lời gọi đồng thời nhận cùng mã trước khi Presence kịp lưu.

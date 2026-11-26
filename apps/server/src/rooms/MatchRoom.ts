@@ -1,6 +1,7 @@
 import { Room, type Client, ServerError } from 'colyseus';
 import { ERROR_TEXT, MATCH_TIME, MAX_PLAYERS, normalizeName, PROTOCOL_VERSION, RAFT_H, RAFT_W, SCORE_TO_WIN } from '@te-nuoc/shared';
 import { GameState, LobbyPlayer, LobbyState, RoomState } from './schema.js';
+import { generateRoomCode, releaseRoomCode } from './roomCode.js';
 
 interface JoinOptions { mode: 'public' | 'private'; name: string; v: number }
 
@@ -12,8 +13,9 @@ export class MatchRoom extends Room<{ state: RoomState }> {
   maxClients = MAX_PLAYERS;
   state = new RoomState();
   private mode: 'public' | 'private' = 'public';
+  private code = '';
 
-  onCreate(options: unknown): void {
+  async onCreate(options: unknown): Promise<void> {
     if (!isObject(options) || (options.mode !== 'public' && options.mode !== 'private')) {
       throw new ServerError(400, ERROR_TEXT.bad_request);
     }
@@ -25,6 +27,12 @@ export class MatchRoom extends Room<{ state: RoomState }> {
     this.state.game = new GameState({
       raftW: RAFT_W, raftH: RAFT_H, warn: false, red: 0, blue: 0, phase: 'countdown', timeLeft: MATCH_TIME,
     });
+    if (this.mode === 'private') {
+      this.code = await generateRoomCode(this.presence);
+      this.roomId = this.code;
+      this.state.lobby.code = this.code;
+      await this.setPrivate(true);
+    }
   }
 
   onAuth(_client: Client, options: unknown): boolean {
@@ -49,5 +57,9 @@ export class MatchRoom extends Room<{ state: RoomState }> {
 
   onLeave(client: Client): void {
     this.state.lobby.players.delete(client.sessionId);
+  }
+
+  async onDispose(): Promise<void> {
+    if (this.code) await releaseRoomCode(this.presence, this.code);
   }
 }
