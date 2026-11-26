@@ -10,10 +10,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@te-nuoc/shared": "0.1.0",
-    "@fontsource/vt323": "^5.2.8"
+    "@fontsource/vt323": "^5.2.8",
+    "@te-nuoc/shared": "0.1.0"
   },
   "devDependencies": {
+    "jsdom": "^31.0.1",
     "vite": "^7.0.0"
   }
 }

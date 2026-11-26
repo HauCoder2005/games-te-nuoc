@@ -144,6 +144,17 @@ export function createRenderer(canvas: HTMLCanvasElement, overlay: HTMLCanvasEle
       } });
       entities.sort((a, b) => a.y - b.y);
       for (const entity of entities) entity.draw();
+      const own = view.players.find((player) => player.slot === viewerSlot);
+      if (own && own.status !== 'respawning') {
+        for (let i = 0; i < own.ammo; i++) {
+          const x = own.x + (i - 1) * 6;
+          const y = own.y - 42;
+          if (!drawFrame(context, bank?.image('balloon_small') ?? null, x, y)) {
+            context.fillStyle = TEAM_COLORS[own.team];
+            context.beginPath(); context.arc(x, y, 2, 0, Math.PI * 2); context.fill();
+          }
+        }
+      }
       effects.draw(context, bank, view.time);
       overlayContext.clearRect(0, 0, overlay.width, overlay.height);
       drawNameTags(overlayContext, view.players, viewerSlot, view.names, scale, pixelRatio);
