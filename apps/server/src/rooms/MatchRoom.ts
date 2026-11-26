@@ -4,6 +4,7 @@ import {
   addPlayer, botInput, botName, createBotMemory, createMatch, DT, ERROR_TEXT, MATCH_TIME,
   MAX_PLAYERS, MSG, normalizeName, PROTOCOL_VERSION, RAFT_H, RAFT_W, RNG_DIVISOR,
   SCORE_TO_WIN, setBot, step, validateInput, removePlayer, RECONNECT_GRACE, MAX_ROOMS_PER_IP_PER_MIN,
+  TICK_METRICS_EVERY,
 } from '@te-nuoc/shared';
 import type { ErrorCode, InputFrame, World } from '@te-nuoc/shared';
 import { GameState, LobbyPlayer, LobbyState, RoomState } from './schema.js';
@@ -35,6 +36,9 @@ export class MatchRoom extends Room<{ state: RoomState }> {
   private readonly namesBySlot = new Map<number, string>();
   private matchEndLogged = false;
   private creatorChecked = false;
+  private tickCount = 0;
+  private tickTotalMs = 0;
+  private tickMaxMs = 0;
 
   messages = {
     [MSG.input]: (client: Client, raw: unknown) => this.receiveInput(client, raw),
@@ -178,6 +182,12 @@ export class MatchRoom extends Room<{ state: RoomState }> {
   }
 
   async onDispose(): Promise<void> {
+    if (this.tickCount > 0) {
+      console.log(JSON.stringify({ evt: 'tick_metrics', roomId: this.roomId,
+        avgMs: Number((this.tickTotalMs / this.tickCount).toFixed(3)),
+        maxMs: Number(this.tickMaxMs.toFixed(3)), ticks: this.tickCount }));
+      this.tickCount = 0; this.tickTotalMs = 0; this.tickMaxMs = 0;
+    }
     if (this.code) await releaseRoomCode(this.presence, this.code);
     this.log('room_disposed');
   }
@@ -277,6 +287,7 @@ export class MatchRoom extends Room<{ state: RoomState }> {
       if (this.publicCountdown === 0) this.beginMatch();
     }
     if (!this.world) return;
+    const tickStart = performance.now();
     const inputs = new Map(this.latestInputs);
     for (const player of this.world.players) {
       if (!player.isBot) continue;
@@ -301,6 +312,16 @@ export class MatchRoom extends Room<{ state: RoomState }> {
       for (const member of this.lobby.members) member.ready = false;
       if (this.mode === 'public' && this.lobby.members.length < MAX_PLAYERS) void this.unlock();
       this.syncLobby();
+    }
+    const tickMs = performance.now() - tickStart;
+    this.tickCount++;
+    this.tickTotalMs += tickMs;
+    this.tickMaxMs = Math.max(this.tickMaxMs, tickMs);
+    if (this.tickCount >= TICK_METRICS_EVERY || (this.world === null && this.tickCount > 0)) {
+      console.log(JSON.stringify({ evt: 'tick_metrics', roomId: this.roomId,
+        avgMs: Number((this.tickTotalMs / this.tickCount).toFixed(3)),
+        maxMs: Number(this.tickMaxMs.toFixed(3)), ticks: this.tickCount }));
+      this.tickCount = 0; this.tickTotalMs = 0; this.tickMaxMs = 0;
     }
   }
 }
