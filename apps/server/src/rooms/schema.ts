@@ -18,6 +18,7 @@ export const GamePlayer = schema({
   x: t.float32(), y: t.float32(), wet: t.float32(),
   status: t.string(), timer: t.float32(), ammo: t.uint8(), facing: t.int8(),
   aimX: t.float32(), aimY: t.float32(), ackSeq: t.uint32(), ko: t.uint8(),
+  direct: t.uint8(), falls: t.uint8(),
 }, 'GamePlayer');
 export type GamePlayer = SchemaType<typeof GamePlayer>;
 

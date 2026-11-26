@@ -27,6 +27,8 @@ export function syncState(world: World, target: GameState, names: ReadonlyMap<nu
     schemaPlayer.aimY = player.aimY;
     schemaPlayer.ackSeq = player.ackSeq;
     schemaPlayer.ko = player.stats.ko;
+    schemaPlayer.direct = player.stats.direct;
+    schemaPlayer.falls = player.stats.falls;
   }
   for (const key of target.players.keys()) if (!playerKeys.has(key)) target.players.delete(key);
 

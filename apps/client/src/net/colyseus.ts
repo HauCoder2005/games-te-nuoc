@@ -10,6 +10,7 @@ export interface NetGamePlayer {
   slot: number; team: Team; variant: number; isBot: boolean; name: string;
   x: number; y: number; wet: number; status: PlayerStatus; timer: number;
   ammo: number; facing: 1 | -1; aimX: number; aimY: number; ackSeq: number; ko: number;
+  direct: number; falls: number;
 }
 export interface NetState {
   lobby: {

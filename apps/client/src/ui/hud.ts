@@ -30,14 +30,24 @@ export function killFeedLine(
   ];
 }
 
-export function updateHud(root: HTMLElement, world: World, names: ReadonlyMap<number, string>, feed: string[]): void {
+export function updateHud(root: HTMLElement, world: World, names: ReadonlyMap<number, string>, feed: string[],
+  options: { roomLabel?: string; banner?: string } = {}): void {
   root.replaceChildren();
+  if (options.roomLabel) {
+    const label = document.createElement('div'); label.className = 'room-label'; label.textContent = options.roomLabel; root.append(label);
+  }
   const score = document.createElement('div');
   score.className = 'score';
-  score.textContent = `ĐỎ ${world.score[0]} : ${world.score[1]} XANH`;
+  const red = document.createElement('span'); red.className = 'score-red'; red.textContent = `ĐỎ ${world.score[0]}`;
+  const separator = document.createElement('span'); separator.className = 'score-separator'; separator.textContent = ':';
+  const blue = document.createElement('span'); blue.className = 'score-blue'; blue.textContent = `${world.score[1]} XANH`;
+  score.append(red, separator, blue);
   const clock = document.createElement('div');
   clock.className = 'clock';
   clock.textContent = formatClock(world.timeLeft);
+  if (options.banner) {
+    const banner = document.createElement('div'); banner.className = 'banner'; banner.textContent = options.banner; root.append(banner);
+  }
   const messages = document.createElement('div');
   messages.className = 'feed';
   for (const text of feed.slice(-4)) {
@@ -47,14 +57,17 @@ export function updateHud(root: HTMLElement, world: World, names: ReadonlyMap<nu
   }
   const chips = document.createElement('div');
   chips.className = 'chips';
-  for (const player of world.players) {
+  for (const player of [...world.players].sort((a, b) => a.team - b.team || a.slot - b.slot)) {
     const chip = document.createElement('div');
     chip.className = `chip team-${player.team}`;
+    const face = document.createElement('span');
+    face.className = 'chip-face';
+    face.style.backgroundImage = `url('/assets/player_${player.team === 0 ? 'red' : 'blue'}_v${player.variant}.png')`;
     const name = document.createElement('span');
     name.textContent = names.get(player.slot) ?? `#${player.slot}`;
     const stats = document.createElement('span');
     stats.textContent = `${chipStatus(player)} · KO ${player.stats.ko}`;
-    chip.append(name, stats);
+    chip.append(face, name, stats);
     chips.append(chip);
   }
   root.append(score, clock, messages, chips);

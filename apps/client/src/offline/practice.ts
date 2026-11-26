@@ -6,6 +6,9 @@ import { createRenderer } from '../render/renderer';
 import { loadSprites } from '../render/sprites';
 import { showHome } from '../ui/home';
 import { killFeedLine, updateHud } from '../ui/hud';
+import { attachGameMenus } from '../ui/escMenu';
+import { bannerFor, showResults } from '../ui/results';
+import type { Awards } from '@te-nuoc/shared';
 
 export function startPractice(root: HTMLElement): () => void {
   unlockAudio();
@@ -48,10 +51,16 @@ export function startPractice(root: HTMLElement): () => void {
   let accumulator = 0;
   const feed: { text: string; expires: number }[] = [];
   let resultShown = false;
+  let resultAwards: Awards = { mvp: null, sharpshooter: null, mostFalls: null };
+  let banner = '';
+  let bannerUntil = 0;
+  let lastScore = '';
+  const detachMenus = attachGameMenus(panel, () => world, () => names, () => { stop(); showHome(root); });
   const stop = () => {
     stopped = true;
     cancelAnimationFrame(request);
     source.destroy();
+    detachMenus();
   };
   leave.addEventListener('click', () => { stop(); showHome(root); });
 
@@ -67,8 +76,17 @@ export function startPractice(root: HTMLElement): () => void {
       const inputs = new Map<number, InputFrame>([[0, source.sample()]]);
       for (const entry of roster.slice(1)) inputs.set(entry.slot, botInput(world, entry.slot, memories.get(entry.slot)!));
       const events = step(world, inputs, DT);
+      if (events.some((event) => event.k === 'burst' && event.direct)
+        && events.some((event) => event.k === 'hit' && event.slot === 0)) {
+        stack.classList.remove('shake');
+        void stack.offsetWidth;
+        stack.classList.add('shake');
+      }
       for (const event of events) {
         playSfx(event);
+        const nextBanner = bannerFor(event, world.score, world.settings.scoreToWin, names);
+        if (nextBanner) { banner = nextBanner; bannerUntil = now + 3000; }
+        if (event.k === 'matchEnd') resultAwards = event.awards;
         const line = killFeedLine(event, names, teams);
         if (line) feed.push({ text: line.map((part) => part.text).join(''), expires: now + 4000 });
       }
@@ -77,12 +95,19 @@ export function startPractice(root: HTMLElement): () => void {
     }
     while (feed.length && feed[0].expires < now) feed.shift();
     renderer.draw({ ...world, names }, 0);
-    updateHud(hud, world, names, feed.map((entry) => entry.text));
+    updateHud(hud, world, names, feed.map((entry) => entry.text),
+      { roomLabel: 'CHƠI THỬ VỚI BOT · 4v4', banner: now < bannerUntil ? banner : '' });
+    const score = world.score.join(':');
+    if (lastScore && score !== lastScore) {
+      hud.classList.remove('score-pulse');
+      void hud.offsetWidth;
+      hud.classList.add('score-pulse');
+    }
+    lastScore = score;
     if (world.phase === 'matchEnd' && !resultShown) {
       resultShown = true;
       const result = document.createElement('div');
-      result.className = 'result';
-      result.textContent = `${world.winner === 0 ? 'ĐỘI ĐỎ' : 'ĐỘI XANH'} THẮNG! · ${world.score[0]} : ${world.score[1]}`;
+      showResults(result, world.winner ?? 0, world.score, resultAwards, names);
       panel.append(result);
     }
     request = requestAnimationFrame(frame);

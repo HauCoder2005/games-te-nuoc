@@ -12,6 +12,8 @@ import { playSfx, unlockAudio } from '../audio/sfx';
 import { showHome } from './home';
 import { renderMatchmaking } from './matchmaking';
 import { CONNECTION_LOST_TEXT } from './errors';
+import { attachGameMenus } from './escMenu';
+import { bannerFor, showResults } from './results';
 
 function button(label: string, action: () => void): HTMLButtonElement {
   const element = document.createElement('button');
@@ -39,6 +41,8 @@ function worldFromRoom(room: GameRoom, current: World | null): World | null {
       x: source.x, y: source.y, wet: source.wet, status: source.status, timer: source.timer,
       ammo: source.ammo, facing: source.facing, aimX: source.aimX, aimY: source.aimY, ackSeq: source.ackSeq });
     target.stats.ko = source.ko;
+    target.stats.direct = source.direct;
+    target.stats.falls = source.falls;
     return target;
   });
   world.balloons = [...game.balloons.values()].map((balloon) => ({
@@ -64,6 +68,10 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
   const samples = new Map<number, Interpolator>();
   const lastServerPosition = new Map<number, { x: number; y: number }>();
   const feed: { text: string; expires: number }[] = [];
+  let banner = '';
+  let bannerUntil = 0;
+  let removeMenus: (() => void) | null = null;
+  let lastScore = '';
   const panel = document.createElement('main');
   panel.className = 'online';
   root.replaceChildren(panel);
@@ -74,6 +82,7 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
     cancelAnimationFrame(request);
     clearInterval(timer);
     input?.destroy();
+    removeMenus?.();
     void room.leave();
   };
   const leave = button('Rời phòng', () => { dispose(); showHome(root); });
@@ -86,6 +95,14 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
   room.onMessage(MSG.events, (message: unknown) => {
     if (!Array.isArray(message)) return;
     const events = message as GameEvent[];
+    const ownSlot = room.state.lobby.players.get(room.sessionId)?.slot;
+    if (events.some((event) => event.k === 'burst' && event.direct)
+      && events.some((event) => event.k === 'hit' && event.slot === ownSlot)) {
+      const stack = panel.querySelector('.game-stack');
+      stack?.classList.remove('shake');
+      void (stack as HTMLElement | null)?.offsetWidth;
+      stack?.classList.add('shake');
+    }
     const names = new Map<number, string>();
     const teams = new Map<number, Team>();
     for (const player of room.state.game.players.values()) {
@@ -94,6 +111,14 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
     }
     for (const event of events) {
       playSfx(event);
+      const namesForBanner = names;
+      const nextBanner = bannerFor(event, [room.state.game.red, room.state.game.blue], room.state.lobby.scoreToWin, namesForBanner);
+      if (nextBanner) { banner = nextBanner; bannerUntil = performance.now() + 3000; }
+      if (event.k === 'matchEnd') {
+        const result = document.createElement('div');
+        showResults(result, event.winner, [room.state.game.red, room.state.game.blue], event.awards, names);
+        panel.append(result);
+      }
       const line = killFeedLine(event, names, teams);
       if (line) feed.push({ text: line.map((part) => part.text).join(''), expires: performance.now() + 4000 });
     }
@@ -187,6 +212,8 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
     stack.append(canvas, overlay);
     panel.append(stack, hud, error, leave);
     renderer = createRenderer(canvas, overlay, null);
+    removeMenus = attachGameMenus(panel, () => world, () => new Map([...room.state.game.players.values()].map((player) => [player.slot, player.name])),
+      () => { dispose(); showHome(root); });
     input = createInput(window, canvas, (cx, cy) => {
       const bounds = canvas!.getBoundingClientRect();
       return { x: Math.max(0, Math.min(VIEW_W, (cx - bounds.left) * VIEW_W / bounds.width)),
@@ -213,6 +240,7 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
     if (phase !== lastPhase) {
       lastPhase = phase;
       input?.destroy(); input = null;
+      removeMenus?.(); removeMenus = null;
       clearInterval(timer);
       if (phase === 'match') showGame(); else { panel.className = 'online'; world = null; lastLobbySignature = ''; }
     }
@@ -250,7 +278,18 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
         for (const player of room.state.game.players.values()) names.set(player.slot, player.name);
         while (feed.length && feed[0].expires < now) feed.shift();
         renderer.draw({ ...world, names }, ownSlot);
-        updateHud(hud, world, names, feed.map((entry) => entry.text));
+        const roomLabel = room.state.lobby.mode === 'private'
+          ? `PHÒNG ${room.state.lobby.code} · ${room.state.lobby.teamSize}v${room.state.lobby.teamSize} · tới ${room.state.lobby.scoreToWin} điểm`
+          : `GHÉP NGẪU NHIÊN · ${room.state.lobby.teamSize}v${room.state.lobby.teamSize}`;
+        updateHud(hud, world, names, feed.map((entry) => entry.text),
+          { roomLabel, banner: now < bannerUntil ? banner : '' });
+        const score = world.score.join(':');
+        if (lastScore && score !== lastScore) {
+          hud.classList.remove('score-pulse');
+          void hud.offsetWidth;
+          hud.classList.add('score-pulse');
+        }
+        lastScore = score;
       }
     }
     request = requestAnimationFrame(frame);
