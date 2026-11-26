@@ -1,3 +1,5 @@
+import { normalizeName } from '@te-nuoc/shared';
+
 export interface RankTier {
   name: string;
   minStars: number;
@@ -22,6 +24,14 @@ export interface LeaderboardEntry {
   isSelf?: boolean;
 }
 
+export interface StoredAccount {
+  username: string;
+  password: string;
+  stars: number;
+  wins: number;
+  variant: number;
+}
+
 const DEFAULT_RIVALS: readonly LeaderboardEntry[] = [
   { name: 'Hưng Thủy Thần', stars: 16, wins: 16, variant: 2 },
   { name: 'Mai Bắn Tỉa', stars: 12, wins: 12, variant: 4 },
@@ -33,13 +43,108 @@ const DEFAULT_RIVALS: readonly LeaderboardEntry[] = [
 
 const STARS_KEY = 'aqua-blast-stars';
 const WINS_KEY = 'aqua-blast-wins';
+const ACCOUNTS_KEY = 'aqua-blast-accounts';
+const SESSION_KEY = 'aqua-blast-session';
+
+function loadAccountsMap(): Record<string, StoredAccount> {
+  try {
+    const raw = localStorage.getItem(ACCOUNTS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as unknown;
+    return typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, StoredAccount>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveAccountsMap(map: Record<string, StoredAccount>): void {
+  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(map));
+}
+
+export function getActiveAccount(): StoredAccount | null {
+  const sessionKey = localStorage.getItem(SESSION_KEY);
+  if (!sessionKey) return null;
+  const map = loadAccountsMap();
+  return map[sessionKey] ?? null;
+}
+
+export function registerOrLoginAccount(
+  rawUsername: string,
+  rawPassword: string,
+  variant: number,
+): { ok: true; created: boolean; account: StoredAccount } | { ok: false; error: string } {
+  const cleanUser = normalizeName(rawUsername);
+  if (!cleanUser) return { ok: false, error: 'Vui lòng nhập tên tài khoản (Username)' };
+  const pass = rawPassword.trim();
+  if (pass.length < 3) return { ok: false, error: 'Vui lòng nhập mật khẩu (tối thiểu 3 ký tự)' };
+
+  const key = cleanUser.toLowerCase();
+  const map = loadAccountsMap();
+  const existing = map[key];
+  if (existing) {
+    if (existing.password !== pass) {
+      return { ok: false, error: 'Mật khẩu không đúng cho tài khoản này!' };
+    }
+    existing.variant = variant;
+    map[key] = existing;
+    saveAccountsMap(map);
+    localStorage.setItem(SESSION_KEY, key);
+    localStorage.setItem('te-nuoc-name', existing.username);
+    localStorage.setItem(STARS_KEY, String(existing.stars));
+    localStorage.setItem(WINS_KEY, String(existing.wins));
+    void syncAuthToServer(existing.username, existing.password, existing.variant);
+    return { ok: true, created: false, account: existing };
+  }
+
+  const created: StoredAccount = {
+    username: cleanUser,
+    password: pass,
+    stars: getPlayerStars(),
+    wins: getPlayerWins(),
+    variant,
+  };
+  map[key] = created;
+  saveAccountsMap(map);
+  localStorage.setItem(SESSION_KEY, key);
+  localStorage.setItem('te-nuoc-name', created.username);
+  localStorage.setItem(STARS_KEY, String(created.stars));
+  localStorage.setItem(WINS_KEY, String(created.wins));
+  void syncAuthToServer(created.username, created.password, created.variant);
+  return { ok: true, created: true, account: created };
+}
+
+export function logoutAccount(): void {
+  localStorage.removeItem(SESSION_KEY);
+}
+
+function apiBaseUrl(): string {
+  const wsUrl = import.meta.env.VITE_SERVER_URL ?? (typeof location !== 'undefined' ? `ws://${location.hostname}:2567` : 'ws://localhost:2567');
+  return wsUrl.replace(/^ws(s?):\/\//, 'http$1://').replace(/\/$/, '');
+}
+
+async function syncAuthToServer(username: string, password: string, variant: number): Promise<void> {
+  if (typeof fetch !== 'function') return;
+  try {
+    await fetch(`${apiBaseUrl()}/api/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, variant }),
+    });
+  } catch {
+    /* Offline fallback */
+  }
+}
 
 export function getPlayerStars(): number {
+  const active = getActiveAccount();
+  if (active) return active.stars;
   const raw = Number(localStorage.getItem(STARS_KEY) ?? '0');
   return Number.isFinite(raw) && raw >= 0 ? Math.floor(raw) : 0;
 }
 
 export function getPlayerWins(): number {
+  const active = getActiveAccount();
+  if (active) return active.wins;
   const raw = Number(localStorage.getItem(WINS_KEY) ?? '0');
   return Number.isFinite(raw) && raw >= 0 ? Math.floor(raw) : 0;
 }
@@ -49,6 +154,25 @@ export function addWinStar(): { stars: number; wins: number; tier: RankTier } {
   const wins = getPlayerWins() + 1;
   localStorage.setItem(STARS_KEY, String(stars));
   localStorage.setItem(WINS_KEY, String(wins));
+
+  const sessionKey = localStorage.getItem(SESSION_KEY);
+  if (sessionKey) {
+    const map = loadAccountsMap();
+    const account = map[sessionKey];
+    if (account) {
+      account.stars = stars;
+      account.wins = wins;
+      map[sessionKey] = account;
+      saveAccountsMap(map);
+      if (typeof fetch === 'function') {
+        void fetch(`${apiBaseUrl()}/api/rank/win`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: account.username, password: account.password }),
+        }).catch(() => {});
+      }
+    }
+  }
   return { stars, wins, tier: getRankTier(stars) };
 }
 
@@ -67,14 +191,31 @@ export function formatStarIcons(stars: number): string {
 }
 
 export function getLeaderboard(playerName: string, playerVariant: number): LeaderboardEntry[] {
-  const clean = playerName.trim() || 'Bạn';
-  const stars = getPlayerStars();
-  const wins = getPlayerWins();
-  const rivals = DEFAULT_RIVALS.filter((entry) => entry.name.toLowerCase() !== clean.toLowerCase());
-  const all: LeaderboardEntry[] = [
-    ...rivals,
-    { name: clean, stars, wins, variant: playerVariant, isSelf: true },
-  ];
+  const active = getActiveAccount();
+  const clean = (active?.username ?? playerName).trim();
+  const map = loadAccountsMap();
+  const registeredEntries: LeaderboardEntry[] = Object.values(map).map((acc) => ({
+    name: acc.username,
+    stars: acc.stars,
+    wins: acc.wins,
+    variant: acc.variant,
+    isSelf: clean.length > 0 && acc.username.toLowerCase() === clean.toLowerCase(),
+  }));
+
+  const takenNames = new Set(registeredEntries.map((entry) => entry.name.toLowerCase()));
+  const rivals = DEFAULT_RIVALS.filter((entry) => !takenNames.has(entry.name.toLowerCase()));
+  const all: LeaderboardEntry[] = [...rivals, ...registeredEntries];
+
+  if (clean && !takenNames.has(clean.toLowerCase())) {
+    all.push({
+      name: clean,
+      stars: getPlayerStars(),
+      wins: getPlayerWins(),
+      variant: playerVariant,
+      isSelf: true,
+    });
+  }
+
   all.sort((a, b) => b.stars - a.stars || (a.isSelf ? -1 : 1));
-  return all.slice(0, 6);
+  return all.slice(0, 7);
 }

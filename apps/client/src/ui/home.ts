@@ -3,24 +3,39 @@ import { startPractice } from '../offline/practice';
 import { connect, mapJoinError, parseRoute } from '../net/colyseus';
 import { showRoom } from './privateLobby';
 import { createCharacterAvatar } from './avatar';
-import { formatStarIcons, getLeaderboard, getPlayerStars, getPlayerWins, getRankTier } from './rank';
+import { createIconButton, setButtonContent } from './icons';
+import {
+  formatStarIcons, getActiveAccount, getLeaderboard, getPlayerStars,
+  getPlayerWins, getRankTier, registerOrLoginAccount,
+} from './rank';
 
 export function isTouchOnly(nav: { maxTouchPoints: number }, mq: (query: string) => boolean): boolean {
   return nav.maxTouchPoints > 0 && !mq('(pointer: fine)');
 }
 
 function getStoredVariant(): number {
+  const active = getActiveAccount();
+  if (active) return active.variant;
   const raw = Number(localStorage.getItem('te-nuoc-variant') ?? '0');
   return Number.isInteger(raw) && raw >= 0 && raw < CHARACTER_VARIANTS.length ? raw : 0;
 }
 
 export function showHome(root: HTMLElement): void {
   root.replaceChildren();
+  const layout = document.createElement('div');
+  layout.className = 'home-layout';
+
+  // Left separate panel: Leaderboard box
+  const leaderboardPanel = document.createElement('aside');
+  leaderboardPanel.className = 'home-leaderboard-panel home-box-leaderboard';
+
+  // Right main panel: Game controls & Auth/Character box + Room box
   const panel = document.createElement('main');
   panel.className = 'home';
   const title = document.createElement('h1');
   title.textContent = 'Aqua Blast';
   panel.append(title);
+
   if (isTouchOnly(navigator, (query) => window.matchMedia(query).matches)) {
     const notice = document.createElement('p');
     notice.textContent = 'Game cần bàn phím và chuột';
@@ -28,30 +43,79 @@ export function showHome(root: HTMLElement): void {
     root.append(panel);
     return;
   }
+
+  const activeAccount = getActiveAccount();
+  let selectedVariant = getStoredVariant();
+
   const nameBox = document.createElement('section');
   nameBox.className = 'home-box home-box-name';
-  const label = document.createElement('label');
-  label.textContent = 'Tên của bạn';
-  const name = document.createElement('input');
-  name.placeholder = 'Nhập tên (tối đa 12 ký tự)';
-  name.value = localStorage.getItem('te-nuoc-name') ?? '';
-  label.append(name);
-
-  let selectedVariant = getStoredVariant();
-  const stars = getPlayerStars();
-  const wins = getPlayerWins();
-  const tier = getRankTier(stars);
 
   const rankBanner = document.createElement('div');
   rankBanner.className = 'rank-profile-bar';
   const rankBadge = document.createElement('div');
   rankBadge.className = 'rank-tier-badge';
-  rankBadge.style.borderColor = tier.color;
-  rankBadge.textContent = `${tier.icon} ${tier.name}`;
   const rankStars = document.createElement('div');
   rankStars.className = 'rank-stars-display';
-  rankStars.textContent = `${formatStarIcons(stars)} · ${wins} trận thắng (Thắng +1 ⭐)`;
+  const updateRankBanner = () => {
+    const stars = getPlayerStars();
+    const wins = getPlayerWins();
+    const tier = getRankTier(stars);
+    rankBadge.style.borderColor = tier.color;
+    rankBadge.textContent = `${tier.icon} ${tier.name}`;
+    rankStars.textContent = `${formatStarIcons(stars)} · ${wins} thắng (Thắng +1 ⭐)`;
+  };
+  updateRankBanner();
   rankBanner.append(rankBadge, rankStars);
+
+  // Quick Username & Password registration/login inside the account box
+  const authGrid = document.createElement('div');
+  authGrid.className = 'auth-grid';
+
+  const label = document.createElement('label');
+  label.textContent = 'Tên của bạn (Username)';
+  const name = document.createElement('input');
+  name.placeholder = 'Nhập Username (tối đa 12 ký tự)';
+  name.value = activeAccount?.username ?? localStorage.getItem('te-nuoc-name') ?? '';
+  label.append(name);
+
+  const passLabel = document.createElement('label');
+  passLabel.textContent = 'Mật khẩu (Đăng ký / Đăng nhập nhanh)';
+  const passRow = document.createElement('div');
+  passRow.className = 'auth-pass-row';
+  const password = document.createElement('input');
+  password.type = 'password';
+  password.className = 'auth-password-input';
+  password.placeholder = 'Mật khẩu (≥ 3 ký tự)';
+  password.value = activeAccount?.password ?? '123';
+
+  const authStatus = document.createElement('div');
+  authStatus.className = 'auth-status';
+  if (activeAccount) {
+    authStatus.textContent = `✅ Đã đăng nhập: ${activeAccount.username} (Đã lên Bảng Xếp Hạng)`;
+  } else {
+    authStatus.textContent = '💡 Nhập Username + Mật khẩu để ghi danh lên Bảng Xếp Hạng';
+  }
+
+  const authBtn = createIconButton('user-plus', activeAccount ? 'Cập nhật TK' : 'Đăng ký / Lưu TK', () => {
+    const res = registerOrLoginAccount(name.value, password.value, selectedVariant);
+    if (!res.ok) {
+      error.textContent = res.error;
+      return;
+    }
+    error.textContent = '';
+    name.value = res.account.username;
+    authStatus.textContent = res.created
+      ? `🎉 Đã tạo tài khoản "${res.account.username}" & đưa lên Bảng Xếp Hạng!`
+      : `✅ Đã đăng nhập tài khoản "${res.account.username}"!`;
+    setButtonContent(authBtn, 'check-circle', 'Đã lưu TK');
+    updateRankBanner();
+    renderLeaderboardRows();
+  });
+
+  passRow.append(password, authBtn);
+  passLabel.append(passRow);
+  authGrid.append(label, passLabel);
+
   const charTitle = document.createElement('div');
   charTitle.className = 'char-picker-title';
   charTitle.textContent = 'Chọn nhân vật (vào trận sẽ mặc đồng phục màu đội Đỏ/Xanh)';
@@ -91,7 +155,7 @@ export function showHome(root: HTMLElement): void {
     charCards.push(card);
     charGrid.append(card);
   }
-  nameBox.append(rankBanner, label, charTitle, charGrid, charDetail);
+  nameBox.append(rankBanner, authGrid, authStatus, charTitle, charGrid, charDetail);
 
   const roomBox = document.createElement('section');
   roomBox.className = 'home-box home-box-room';
@@ -103,18 +167,26 @@ export function showHome(root: HTMLElement): void {
   roomCode.placeholder = 'Mã phòng (4 chữ)';
   roomCode.value = parseRoute(location.hash).roomCode ?? '';
 
-  const button = document.createElement('button');
-  button.textContent = 'Chơi thử với bot';
   const error = document.createElement('p');
   error.className = 'error';
+
   const cleanName = (): string | null => {
     const clean = normalizeName(name.value);
     if (!clean) { error.textContent = 'Vui lòng nhập tên'; return null; }
-    localStorage.setItem('te-nuoc-name', clean);
+    const pass = password.value.trim() || '123';
+    const authRes = registerOrLoginAccount(clean, pass, selectedVariant);
+    if (!authRes.ok) {
+      error.textContent = authRes.error;
+      return null;
+    }
+    localStorage.setItem('te-nuoc-name', authRes.account.username);
     localStorage.setItem('te-nuoc-variant', String(selectedVariant));
     error.textContent = '';
-    return clean;
+    updateRankBanner();
+    renderLeaderboardRows();
+    return authRes.account.username;
   };
+
   const join = async (mode: 'private' | 'code' | 'public'): Promise<void> => {
     const clean = cleanName();
     if (!clean) return;
@@ -128,48 +200,46 @@ export function showHome(root: HTMLElement): void {
       showRoom(root, room);
     } catch (cause) {
       error.textContent = mapJoinError(cause);
-      const retry = document.createElement('button');
-      retry.textContent = 'Thử lại';
-      retry.addEventListener('click', () => { retry.remove(); void join(mode); });
+      const retry = createIconButton('refresh', 'Thử lại', () => {
+        retry.remove();
+        void join(mode);
+      });
       error.append(retry);
     }
   };
-  const create = document.createElement('button');
-  create.textContent = 'Tạo phòng riêng';
-  create.addEventListener('click', () => { void join('private'); });
-  const quick = document.createElement('button');
-  quick.textContent = 'Ghép ngẫu nhiên';
-  quick.addEventListener('click', () => { void join('public'); });
-  const enter = document.createElement('button');
-  enter.textContent = 'Vào';
-  enter.addEventListener('click', () => { void join('code'); });
-  roomRow.append(roomCode, enter);
-  roomLabel.append(roomRow);
-  roomBox.append(roomLabel, create);
-  button.addEventListener('click', () => {
+
+  const create = createIconButton('plus', 'Tạo phòng riêng', () => { void join('private'); });
+  const quick = createIconButton('swords', 'Ghép ngẫu nhiên', () => { void join('public'); });
+  const enter = createIconButton('log-in', 'Vào', () => { void join('code'); });
+  const button = createIconButton('bot', 'Chơi thử với bot', () => {
     const clean = cleanName();
     if (!clean) return;
     startPractice(root);
   });
 
-  // Leaderboard box right on the home matchmaking screen
-  const leaderboardBox = document.createElement('section');
-  leaderboardBox.className = 'home-box home-box-leaderboard';
+  roomRow.append(roomCode, enter);
+  roomLabel.append(roomRow);
+  roomBox.append(roomLabel, create);
+
+  // Build Left Leaderboard Column
   const lbHeader = document.createElement('div');
   lbHeader.className = 'lb-header';
-  const lbTitle = document.createElement('span');
+  const lbTitle = document.createElement('div');
   lbTitle.className = 'lb-title';
-  lbTitle.textContent = '🏆 BẢNG XẾP HẠNG LEO RANK';
-  const lbRule = document.createElement('span');
+  lbTitle.textContent = '🏆 BẢNG XẾP HẠNG';
+  const lbRule = document.createElement('div');
   lbRule.className = 'lb-rule';
   lbRule.textContent = 'Thắng 1 trận = +1 ⭐';
-  lbHeader.append(lbTitle, lbRule);
+  const lbSub = document.createElement('div');
+  lbSub.className = 'lb-subtitle';
+  lbSub.textContent = 'Đăng ký nhanh Username + Mật khẩu bên phải để lưu Sao & đua Top!';
+  lbHeader.append(lbTitle, lbRule, lbSub);
 
   const lbList = document.createElement('div');
   lbList.className = 'lb-list';
   const renderLeaderboardRows = () => {
     lbList.replaceChildren();
-    const entries = getLeaderboard(name.value || 'Bạn', selectedVariant);
+    const entries = getLeaderboard(name.value, selectedVariant);
     entries.forEach((entry, index) => {
       const row = document.createElement('div');
       row.className = `lb-row ${entry.isSelf ? 'lb-row-self' : ''} lb-rank-${index + 1}`;
@@ -199,8 +269,9 @@ export function showHome(root: HTMLElement): void {
     renderLeaderboardRows();
   });
   renderLeaderboardRows();
-  leaderboardBox.append(lbHeader, lbList);
+  leaderboardPanel.append(lbHeader, lbList);
 
-  panel.append(nameBox, roomBox, quick, button, leaderboardBox, error);
-  root.append(panel);
+  panel.append(nameBox, roomBox, quick, button, error);
+  layout.append(leaderboardPanel, panel);
+  root.append(layout);
 }

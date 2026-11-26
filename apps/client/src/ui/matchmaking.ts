@@ -1,6 +1,7 @@
 import { MAX_PLAYERS, MSG, PUBLIC_MIN_HUMANS } from '@te-nuoc/shared';
 import type { NetLobbyPlayer } from '../net/colyseus';
 import { createCharacterAvatar } from './avatar';
+import { createIconButton } from './icons';
 
 interface PublicRoomView {
   sessionId: string;
@@ -106,10 +107,13 @@ export function renderMatchmaking(root: HTMLElement, room: PublicRoomView, onLea
   const actions = document.createElement('div');
   actions.className = 'lq-actions';
 
-  const ready = document.createElement('button');
-  ready.className = `lq-confirm-btn ${own?.ready ? 'lq-confirmed' : ''}`;
-  ready.textContent = own?.ready ? 'ĐÃ XÁC NHẬN ✓' : 'XÁC NHẬN VÀO TRẬN';
-  ready.addEventListener('click', () => room.send(MSG.ready, { on: !own?.ready }));
+  const ready = createIconButton(
+    own?.ready ? 'check-circle' : 'swords',
+    own?.ready ? 'ĐÃ XÁC NHẬN ✓' : 'XÁC NHẬN VÀO TRẬN',
+    () => room.send(MSG.ready, { on: !own?.ready }),
+  );
+  ready.classList.add('lq-confirm-btn');
+  if (own?.ready) ready.classList.add('lq-confirmed');
   actions.append(ready);
 
   if (lobby.players.size < PUBLIC_MIN_HUMANS) {
@@ -125,10 +129,8 @@ export function renderMatchmaking(root: HTMLElement, room: PublicRoomView, onLea
     actions.append(hint);
   }
 
-  const leave = document.createElement('button');
-  leave.className = 'lq-leave-btn';
-  leave.textContent = 'Rời phòng';
-  leave.addEventListener('click', onLeave);
+  const leave = createIconButton('log-out', 'Rời phòng', onLeave);
+  leave.classList.add('lq-leave-btn');
   actions.append(leave);
   root.append(actions);
 }

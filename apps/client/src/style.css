@@ -8,15 +8,21 @@ body { margin: 0; min-width: 320px; }
 .game-stack canvas { position: absolute; inset: 0; display: block; }
 .game-stack canvas:first-child { image-rendering: pixelated; }
 .game-stack canvas:last-child { pointer-events: none; }
-.home { width: min(620px, 94vw); padding: 28px 32px; display: flex; flex-direction: column; gap: 16px; text-align: center; background: #231629; border: 3px solid #e9fcff; box-shadow: 8px 8px 0 #111; }
+.home-layout { width: min(1040px, 96vw); display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 22px; align-items: start; }
+@media (max-width: 860px) { .home-layout { grid-template-columns: 1fr; } }
+.home-leaderboard-panel { width: 100%; padding: 22px 20px; display: flex; flex-direction: column; gap: 14px; background: linear-gradient(180deg, #2d1e38 0%, #1e1326 100%); border: 3px solid #ffd700; box-shadow: 8px 8px 0 #111; border-radius: 6px; }
+.home { width: 100%; padding: 26px 30px; display: flex; flex-direction: column; gap: 15px; text-align: center; background: #231629; border: 3px solid #e9fcff; box-shadow: 8px 8px 0 #111; border-radius: 6px; }
 .home h1 { margin: 0; font-family: 'VT323', monospace; color: #ffb35c; text-shadow: 3px 3px 0 #e53b3b; font-size: 68px; line-height: 1; }
 .home-box { width: 100%; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; background: #31223a; border: 2px solid #6ec1ff; border-radius: 8px; }
 .home-box-name { border-color: #ffcf44; }
 .home-box-room { border-color: #6ec1ff; }
-.home label { width: 100%; display: flex; flex-direction: column; gap: 8px; font-size: 18px; font-weight: 700; color: #ffe066; text-align: left; }
+.auth-grid { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+.auth-pass-row { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: stretch; }
+.auth-status { font-size: 13px; font-weight: 700; color: #7cf29c; text-align: left; background: #231629; padding: 6px 10px; border-radius: 6px; border: 1px solid #453255; }
+.home label { width: 100%; display: flex; flex-direction: column; gap: 6px; font-size: 16px; font-weight: 700; color: #ffe066; text-align: left; }
 .home-box-room label { color: #7fd4ff; }
 .room-input-row { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: stretch; }
-.home input { width: 100%; min-width: 0; padding: 10px 12px; font: inherit; font-size: 19px; font-weight: 700; background: #f4eef0; color: #231629; border: 2px solid #2b1e2f; border-radius: 6px; }
+.home input { width: 100%; min-width: 0; padding: 9px 12px; font: inherit; font-size: 18px; font-weight: 700; background: #f4eef0; color: #231629; border: 2px solid #2b1e2f; border-radius: 6px; }
 .char-picker-title { font-size: 15px; font-weight: 700; color: #ffd166; text-align: left; margin-top: 2px; }
 .char-picker { width: 100%; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
 .char-card { width: 100%; min-width: 0; padding: 10px 6px; display: flex; flex-direction: column; align-items: center; gap: 4px; background: #231629; color: #e9fcff; border: 2px solid #594466; border-radius: 8px; font-size: 13px; font-weight: 700; }
@@ -28,7 +34,9 @@ body { margin: 0; min-width: 320px; }
 .char-card-role.gender-female { color: #ffaad4; }
 .char-detail { width: 100%; font-size: 14px; font-weight: 700; color: #9be8ff; text-align: center; background: #231629; padding: 8px 10px; border-radius: 6px; border: 1px solid #4e3a5e; }
 .home > button, .home-box > button { width: 100%; }
-button { font: inherit; font-size: 19px; font-weight: 800; cursor: pointer; border: 2px solid #2b1e2f; border-radius: 6px; padding: 10px 18px; background: #ffcf44; color: #231629; }
+button { font: inherit; font-size: 18px; font-weight: 800; cursor: pointer; border: 2px solid #2b1e2f; border-radius: 6px; padding: 10px 16px; background: #ffcf44; color: #231629; }
+button.icon-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn-icon { width: 20px; height: 20px; flex: none; stroke-width: 2.4; }
 button:hover { filter: brightness(1.1); }
 .home p { margin: 0; font-size: 18px; font-weight: 600; }
 .practice { position: relative; }
@@ -69,11 +77,12 @@ button:hover { filter: brightness(1.1); }
 .rank-tier-badge { padding: 3px 10px; border-radius: 999px; border: 2px solid #ffd700; background: #392748; font-size: 15px; font-weight: 900; color: #ffe066; }
 .rank-stars-display { font-size: 14px; font-weight: 800; color: #fff3b0; }
 .home-box-leaderboard { border-color: #ffd700; background: linear-gradient(180deg, #31223a 0%, #24182c 100%); }
-.lb-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.lb-title { font-size: 17px; font-weight: 900; color: #ffd700; }
-.lb-rule { font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: #4a3219; color: #ffe066; border: 1px solid #ffd700; }
-.lb-list { display: flex; flex-direction: column; gap: 6px; }
-.lb-row { display: grid; grid-template-columns: 32px 26px minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 6px 10px; background: #231629; border: 1px solid #493657; border-radius: 6px; font-size: 14px; font-weight: 700; text-align: left; }
+.lb-header { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left; }
+.lb-title { font-size: 22px; font-weight: 900; color: #ffd700; }
+.lb-rule { font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 999px; background: #4a3219; color: #ffe066; border: 1px solid #ffd700; }
+.lb-subtitle { font-size: 12px; font-weight: 600; color: #b9b0c4; line-height: 1.35; }
+.lb-list { display: flex; flex-direction: column; gap: 8px; }
+.lb-row { display: grid; grid-template-columns: 30px 26px minmax(0, 1fr) auto auto; align-items: center; gap: 7px; padding: 8px 10px; background: #231629; border: 1px solid #493657; border-radius: 6px; font-size: 13px; font-weight: 700; text-align: left; }
 .lb-row-self { border: 2px solid #ffd700; background: #3f2b4f; box-shadow: 0 0 10px rgba(255, 215, 0, 0.2); }
 .lb-pos { font-size: 16px; font-weight: 900; text-align: center; }
 .lb-avatar { width: 24px; height: 28px; display: flex; align-items: center; justify-content: center; }

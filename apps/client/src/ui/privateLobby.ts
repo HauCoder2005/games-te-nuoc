@@ -15,12 +15,10 @@ import { CONNECTION_LOST_TEXT } from './errors';
 import { attachGameMenus } from './escMenu';
 import { bannerFor, showResults } from './results';
 import { createCharacterAvatar } from './avatar';
+import { createIconButton, type IconName } from './icons';
 
-function button(label: string, action: () => void): HTMLButtonElement {
-  const element = document.createElement('button');
-  element.textContent = label;
-  element.addEventListener('click', action);
-  return element;
+function button(label: string, action: () => void, icon: IconName = 'play'): HTMLButtonElement {
+  return createIconButton(icon, label, action);
 }
 
 function worldFromRoom(room: GameRoom, current: World | null): World | null {
@@ -95,7 +93,7 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
     removeMenus?.();
     void room.leave();
   };
-  const leave = button('Rời phòng', () => { dispose(); showHome(root); });
+  const leave = button('Rời phòng', () => { dispose(); showHome(root); }, 'log-out');
   const error = document.createElement('p');
   error.className = 'error';
   room.onMessage(MSG.error, (message: unknown) => {
@@ -158,7 +156,7 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
     panel.append(heading);
     if (lobby.mode === 'private') panel.append(button('Copy link', () => {
       void navigator.clipboard.writeText(`${location.origin}/#/r/${lobby.code}`);
-    }));
+    }, 'copy'));
     const teams = document.createElement('div');
     teams.className = 'teams';
     for (const team of [0, 1] as const) {
@@ -185,7 +183,7 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
         row.textContent = lobby.botFill ? 'bot' : 'trống';
         column.append(row);
       }
-      if (lobby.mode === 'private') column.append(button('Sang đội này', () => room.send(MSG.team, { team })));
+      if (lobby.mode === 'private') column.append(button('Sang đội này', () => room.send(MSG.team, { team }), 'arrow-right-left'));
       teams.append(column);
     }
     panel.append(teams);
@@ -193,14 +191,14 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
     if (lobby.mode === 'private' && isHost) {
       const controls = document.createElement('div');
       controls.className = 'settings';
-      controls.append(button(lobby.teamSize === 4 ? '4v4' : '5v5', () => room.send(MSG.settings, { teamSize: lobby.teamSize === 4 ? 5 : 4 })));
-      for (const score of [5, 10, 15]) controls.append(button(`${score} điểm${score === lobby.scoreToWin ? ' ✓' : ''}`, () => room.send(MSG.settings, { scoreToWin: score })));
-      controls.append(button(`Lấp chỗ trống bằng bot: ${lobby.botFill ? 'Bật' : 'Tắt'}`, () => room.send(MSG.settings, { botFill: !lobby.botFill })));
-      controls.append(button('Xáo đội', () => room.send(MSG.shuffle, {})));
+      controls.append(button(lobby.teamSize === 4 ? '4v4' : '5v5', () => room.send(MSG.settings, { teamSize: lobby.teamSize === 4 ? 5 : 4 }), 'users'));
+      for (const score of [5, 10, 15]) controls.append(button(`${score} điểm${score === lobby.scoreToWin ? ' ✓' : ''}`, () => room.send(MSG.settings, { scoreToWin: score }), 'target'));
+      controls.append(button(`Lấp chỗ trống bằng bot: ${lobby.botFill ? 'Bật' : 'Tắt'}`, () => room.send(MSG.settings, { botFill: !lobby.botFill }), 'cpu'));
+      controls.append(button('Xáo đội', () => room.send(MSG.shuffle, {}), 'shuffle'));
       panel.append(controls);
     }
     if (lobby.mode === 'private') {
-      if (isHost) panel.append(button('Bắt đầu', () => room.send(MSG.start, {})));
+      if (isHost) panel.append(button('Bắt đầu', () => room.send(MSG.start, {}), 'play'));
       else {
         const waiting = document.createElement('p'); waiting.textContent = 'Chờ chủ phòng bắt đầu…'; panel.append(waiting);
       }

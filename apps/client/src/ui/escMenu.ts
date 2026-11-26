@@ -1,4 +1,5 @@
 import type { World } from '@te-nuoc/shared';
+import { createIconButton } from './icons';
 
 export function attachGameMenus(panel: HTMLElement, world: () => World | null,
   names: () => ReadonlyMap<number, string>, onLeave: () => void): () => void {
@@ -6,10 +7,8 @@ export function attachGameMenus(panel: HTMLElement, world: () => World | null,
   menu.className = 'pause-menu';
   menu.hidden = true;
   const heading = document.createElement('h2'); heading.textContent = 'TẠM DỪNG';
-  const resume = document.createElement('button'); resume.textContent = 'Tiếp tục';
-  resume.addEventListener('click', () => { menu.hidden = true; });
-  const leave = document.createElement('button'); leave.textContent = 'Rời phòng';
-  leave.addEventListener('click', onLeave);
+  const resume = createIconButton('play', 'Tiếp tục', () => { menu.hidden = true; });
+  const leave = createIconButton('log-out', 'Rời phòng', onLeave);
   menu.append(heading, resume, leave);
   const stats = document.createElement('div');
   stats.className = 'stats-menu';

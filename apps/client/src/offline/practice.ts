@@ -8,6 +8,7 @@ import { showHome } from '../ui/home';
 import { killFeedLine, updateHud } from '../ui/hud';
 import { attachGameMenus } from '../ui/escMenu';
 import { bannerFor, showResults } from '../ui/results';
+import { createIconButton } from '../ui/icons';
 import type { Awards } from '@te-nuoc/shared';
 
 export function startPractice(root: HTMLElement): () => void {
@@ -22,9 +23,8 @@ export function startPractice(root: HTMLElement): () => void {
   stack.append(canvas, overlay);
   const hud = document.createElement('div');
   hud.className = 'hud';
-  const leave = document.createElement('button');
-  leave.className = 'leave';
-  leave.textContent = 'Rời phòng';
+  const leave = createIconButton('log-out', 'Rời phòng');
+  leave.classList.add('leave');
   panel.append(stack, hud, leave);
   root.append(panel);
 
