@@ -1,4 +1,5 @@
 import type { Awards, GameEvent } from '@te-nuoc/shared';
+import { addWinStar, formatStarIcons, getPlayerStars, getRankTier } from './rank';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -69,7 +70,7 @@ export function awardLines(awards: Awards, names: ReadonlyMap<number, string>): 
 }
 
 export function showResults(root: HTMLElement, winner: 0 | 1, score: [number, number],
-  awards: Awards, names: ReadonlyMap<number, string>): void {
+  awards: Awards, names: ReadonlyMap<number, string>, playerWon = false): void {
   root.replaceChildren();
   root.className = `result result-team-${winner}`;
 
@@ -81,6 +82,18 @@ export function showResults(root: HTMLElement, winner: 0 | 1, score: [number, nu
   const heading = document.createElement('h2');
   heading.textContent = `ĐỘI ${winner === 0 ? 'ĐỎ' : 'XANH'} THẮNG! · ${score[0]} : ${score[1]}`;
   header.append(crown, heading);
+
+  const rankReward = document.createElement('div');
+  rankReward.className = `result-rank-reward ${playerWon ? 'rank-up-win' : ''}`;
+  if (playerWon) {
+    const updated = addWinStar();
+    rankReward.textContent = `🌟 THẮNG TRẬN +1 SAO! · ${updated.tier.icon} ${updated.tier.name} (${formatStarIcons(updated.stars)})`;
+  } else {
+    const currentStars = getPlayerStars();
+    const currentTier = getRankTier(currentStars);
+    rankReward.textContent = `${currentTier.icon} Hạng hiện tại: ${currentTier.name} (${formatStarIcons(currentStars)})`;
+  }
+  header.append(rankReward);
   root.append(header);
 
   const cards = [

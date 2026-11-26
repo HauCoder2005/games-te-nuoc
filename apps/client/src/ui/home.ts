@@ -3,6 +3,7 @@ import { startPractice } from '../offline/practice';
 import { connect, mapJoinError, parseRoute } from '../net/colyseus';
 import { showRoom } from './privateLobby';
 import { createCharacterAvatar } from './avatar';
+import { formatStarIcons, getLeaderboard, getPlayerStars, getPlayerWins, getRankTier } from './rank';
 
 export function isTouchOnly(nav: { maxTouchPoints: number }, mq: (query: string) => boolean): boolean {
   return nav.maxTouchPoints > 0 && !mq('(pointer: fine)');
@@ -34,10 +35,23 @@ export function showHome(root: HTMLElement): void {
   const name = document.createElement('input');
   name.placeholder = 'Nhập tên (tối đa 12 ký tự)';
   name.value = localStorage.getItem('te-nuoc-name') ?? '';
-  name.addEventListener('input', () => { name.value = Array.from(name.value).slice(0, MAX_NAME_LENGTH).join(''); });
   label.append(name);
 
   let selectedVariant = getStoredVariant();
+  const stars = getPlayerStars();
+  const wins = getPlayerWins();
+  const tier = getRankTier(stars);
+
+  const rankBanner = document.createElement('div');
+  rankBanner.className = 'rank-profile-bar';
+  const rankBadge = document.createElement('div');
+  rankBadge.className = 'rank-tier-badge';
+  rankBadge.style.borderColor = tier.color;
+  rankBadge.textContent = `${tier.icon} ${tier.name}`;
+  const rankStars = document.createElement('div');
+  rankStars.className = 'rank-stars-display';
+  rankStars.textContent = `${formatStarIcons(stars)} · ${wins} trận thắng (Thắng +1 ⭐)`;
+  rankBanner.append(rankBadge, rankStars);
   const charTitle = document.createElement('div');
   charTitle.className = 'char-picker-title';
   charTitle.textContent = 'Chọn nhân vật (vào trận sẽ mặc đồng phục màu đội Đỏ/Xanh)';
@@ -72,11 +86,12 @@ export function showHome(root: HTMLElement): void {
       localStorage.setItem('te-nuoc-variant', String(selectedVariant));
       updateDetailText(selectedVariant);
       for (const item of charCards) item.classList.toggle('selected', item === card);
+      renderLeaderboardRows();
     });
     charCards.push(card);
     charGrid.append(card);
   }
-  nameBox.append(label, charTitle, charGrid, charDetail);
+  nameBox.append(rankBanner, label, charTitle, charGrid, charDetail);
 
   const roomBox = document.createElement('section');
   roomBox.className = 'home-box home-box-room';
@@ -136,6 +151,56 @@ export function showHome(root: HTMLElement): void {
     if (!clean) return;
     startPractice(root);
   });
-  panel.append(nameBox, roomBox, quick, button, error);
+
+  // Leaderboard box right on the home matchmaking screen
+  const leaderboardBox = document.createElement('section');
+  leaderboardBox.className = 'home-box home-box-leaderboard';
+  const lbHeader = document.createElement('div');
+  lbHeader.className = 'lb-header';
+  const lbTitle = document.createElement('span');
+  lbTitle.className = 'lb-title';
+  lbTitle.textContent = '🏆 BẢNG XẾP HẠNG LEO RANK';
+  const lbRule = document.createElement('span');
+  lbRule.className = 'lb-rule';
+  lbRule.textContent = 'Thắng 1 trận = +1 ⭐';
+  lbHeader.append(lbTitle, lbRule);
+
+  const lbList = document.createElement('div');
+  lbList.className = 'lb-list';
+  const renderLeaderboardRows = () => {
+    lbList.replaceChildren();
+    const entries = getLeaderboard(name.value || 'Bạn', selectedVariant);
+    entries.forEach((entry, index) => {
+      const row = document.createElement('div');
+      row.className = `lb-row ${entry.isSelf ? 'lb-row-self' : ''} lb-rank-${index + 1}`;
+      const rankNum = document.createElement('span');
+      rankNum.className = 'lb-pos';
+      rankNum.textContent = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
+      const avatarWrap = document.createElement('span');
+      avatarWrap.className = 'lb-avatar';
+      avatarWrap.append(createCharacterAvatar(entry.variant, 'casual'));
+      const entryName = document.createElement('span');
+      entryName.className = 'lb-name';
+      entryName.textContent = entry.isSelf ? `${entry.name} (Bạn)` : entry.name;
+      const entryTier = getRankTier(entry.stars);
+      const tierTag = document.createElement('span');
+      tierTag.className = 'lb-tier';
+      tierTag.style.color = entryTier.color;
+      tierTag.textContent = `${entryTier.icon} ${entryTier.name}`;
+      const starCount = document.createElement('span');
+      starCount.className = 'lb-stars';
+      starCount.textContent = `⭐ ${entry.stars}`;
+      row.append(rankNum, avatarWrap, entryName, tierTag, starCount);
+      lbList.append(row);
+    });
+  };
+  name.addEventListener('input', () => {
+    name.value = Array.from(name.value).slice(0, MAX_NAME_LENGTH).join('');
+    renderLeaderboardRows();
+  });
+  renderLeaderboardRows();
+  leaderboardBox.append(lbHeader, lbList);
+
+  panel.append(nameBox, roomBox, quick, button, leaderboardBox, error);
   root.append(panel);
 }

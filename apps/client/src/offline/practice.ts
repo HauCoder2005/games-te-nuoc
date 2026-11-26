@@ -109,7 +109,7 @@ export function startPractice(root: HTMLElement): () => void {
     if (world.phase === 'matchEnd' && !resultShown) {
       resultShown = true;
       const result = document.createElement('div');
-      showResults(result, world.winner ?? 0, world.score, resultAwards, names);
+      showResults(result, world.winner ?? 0, world.score, resultAwards, names, (world.winner ?? 0) === 0);
       panel.append(result);
     }
     request = requestAnimationFrame(frame);

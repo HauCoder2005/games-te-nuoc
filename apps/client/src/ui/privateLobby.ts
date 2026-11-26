@@ -126,7 +126,8 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
       if (nextBanner) { banner = nextBanner; bannerUntil = performance.now() + 3000; }
       if (event.k === 'matchEnd') {
         const result = document.createElement('div');
-        showResults(result, event.winner, [room.state.game.red, room.state.game.blue], event.awards, names);
+        const ownTeam = room.state.lobby.players.get(room.sessionId)?.team;
+        showResults(result, event.winner, [room.state.game.red, room.state.game.blue], event.awards, names, ownTeam === event.winner);
         panel.append(result);
       }
       const line = killFeedLine(event, names, teams);

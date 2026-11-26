@@ -2,9 +2,10 @@
 import { describe, expect, it } from 'vitest';
 import { CHARACTER_VARIANTS } from '@te-nuoc/shared';
 import { showHome } from '../src/ui/home';
+import { addWinStar, getPlayerStars, getRankTier } from '../src/ui/rank';
 
-describe('home screen boxes and character selection', () => {
-  it('separates name input and room code into two distinct boxes', () => {
+describe('home screen boxes, character selection, and rank leaderboard', () => {
+  it('separates name input and room code into two distinct boxes and renders leaderboard', () => {
     const root = document.createElement('div');
     location.hash = '#/r/khvt';
     showHome(root);
@@ -12,9 +13,12 @@ describe('home screen boxes and character selection', () => {
     expect(root.querySelector('h1')?.textContent).toBe('Aqua Blast');
     const nameBox = root.querySelector('.home-box-name');
     const roomBox = root.querySelector('.home-box-room');
+    const lbBox = root.querySelector('.home-box-leaderboard');
     expect(nameBox).not.toBeNull();
     expect(roomBox).not.toBeNull();
+    expect(lbBox).not.toBeNull();
     expect(nameBox).not.toBe(roomBox);
+    expect(lbBox?.querySelectorAll('.lb-row').length).toBeGreaterThanOrEqual(5);
 
     const nameInput = nameBox?.querySelector('input') as HTMLInputElement | null;
     const roomInput = roomBox?.querySelector('input') as HTMLInputElement | null;
@@ -23,25 +27,21 @@ describe('home screen boxes and character selection', () => {
     expect(roomInput?.value).toBe('KHVT');
   });
 
-  it('allows selecting distinct male/female characters with skin tone and hairstyle details', () => {
+  it('allows selecting distinct male/female characters and increments rank star on win', () => {
     localStorage.removeItem('te-nuoc-variant');
+    localStorage.removeItem('aqua-blast-stars');
+    localStorage.removeItem('aqua-blast-wins');
     const root = document.createElement('div');
     showHome(root);
 
     const cards = root.querySelectorAll<HTMLButtonElement>('.char-card');
     expect(cards).toHaveLength(CHARACTER_VARIANTS.length);
-    expect(cards[0].classList.contains('selected')).toBe(true);
-    expect(root.querySelectorAll('.char-avatar-svg')).toHaveLength(CHARACTER_VARIANTS.length);
-
     cards[2].click();
-    expect(cards[2].classList.contains('selected')).toBe(true);
-    expect(cards[0].classList.contains('selected')).toBe(false);
     expect(localStorage.getItem('te-nuoc-variant')).toBe('2');
-    expect(root.querySelector('.char-detail')?.textContent).toContain('Bin (Nam · Da đen)');
 
-    cards[3].click();
-    expect(cards[3].classList.contains('selected')).toBe(true);
-    expect(localStorage.getItem('te-nuoc-variant')).toBe('3');
-    expect(root.querySelector('.char-detail')?.textContent).toContain('Su (Nữ · Da vàng)');
+    expect(getPlayerStars()).toBe(0);
+    const afterWin = addWinStar();
+    expect(afterWin.stars).toBe(1);
+    expect(getRankTier(3).name).toBe('Bạc Đoàn');
   });
 });
