@@ -1,0 +1,30 @@
+services:
+  server:
+    build:
+      context: ..
+      dockerfile: infra/server.Dockerfile
+    environment:
+      PORT: '2567'
+      NODE_ENV: production
+      ALLOWED_ORIGIN: ${ALLOWED_ORIGIN}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    expose:
+      - '2567'
+    restart: unless-stopped
+  caddy:
+    image: caddy:2
+    environment:
+      SERVER_DOMAIN: ${SERVER_DOMAIN}
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - server
+    restart: unless-stopped
+volumes:
+  caddy_data:
+  caddy_config:
