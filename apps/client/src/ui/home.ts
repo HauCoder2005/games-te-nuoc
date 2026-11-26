@@ -21,19 +21,31 @@ export function showHome(root: HTMLElement): void {
     root.append(panel);
     return;
   }
+  const nameBox = document.createElement('section');
+  nameBox.className = 'home-box home-box-name';
   const label = document.createElement('label');
   label.textContent = 'Tên của bạn';
   const name = document.createElement('input');
+  name.placeholder = 'Nhập tên (tối đa 12 ký tự)';
   name.value = localStorage.getItem('te-nuoc-name') ?? '';
   name.addEventListener('input', () => { name.value = Array.from(name.value).slice(0, MAX_NAME_LENGTH).join(''); });
   label.append(name);
+  nameBox.append(label);
+
+  const roomBox = document.createElement('section');
+  roomBox.className = 'home-box home-box-room';
+  const roomLabel = document.createElement('label');
+  roomLabel.textContent = 'Mã phòng';
+  const roomRow = document.createElement('div');
+  roomRow.className = 'room-input-row';
+  const roomCode = document.createElement('input');
+  roomCode.placeholder = 'Mã phòng (4 chữ)';
+  roomCode.value = parseRoute(location.hash).roomCode ?? '';
+
   const button = document.createElement('button');
   button.textContent = 'Chơi thử với bot';
   const error = document.createElement('p');
   error.className = 'error';
-  const roomCode = document.createElement('input');
-  roomCode.placeholder = 'Mã phòng';
-  roomCode.value = parseRoute(location.hash).roomCode ?? '';
   const cleanName = (): string | null => {
     const clean = normalizeName(name.value);
     if (!clean) { error.textContent = 'Vui lòng nhập tên'; return null; }
@@ -68,11 +80,14 @@ export function showHome(root: HTMLElement): void {
   const enter = document.createElement('button');
   enter.textContent = 'Vào';
   enter.addEventListener('click', () => { void join('code'); });
+  roomRow.append(roomCode, enter);
+  roomLabel.append(roomRow);
+  roomBox.append(roomLabel, create);
   button.addEventListener('click', () => {
     const clean = cleanName();
     if (!clean) return;
     startPractice(root);
   });
-  panel.append(label, quick, create, roomCode, enter, button, error);
+  panel.append(nameBox, roomBox, quick, button, error);
   root.append(panel);
 }
