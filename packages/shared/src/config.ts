@@ -76,6 +76,15 @@ export const PREDICT_SNAP_PX = 24;
 export const PREDICT_BLEND = 0.2;
 export const PROTOCOL_VERSION = 3;
 export const TEAM_COLORS = ['#E53B3B', '#3B8BF0'] as const;
+export const TEAM_NAME_COLORS = ['#FF7A7A', '#6EC1FF'] as const;
+export const SELF_NAME_COLOR = '#FFE066';
+export const CHARACTER_VARIANTS = [
+  { id: 0, label: 'Kiểu 1', detail: 'Da ngăm · Tóc đen · Kính xanh' },
+  { id: 1, label: 'Kiểu 2', detail: 'Da sáng · Tóc nâu · Kính vàng' },
+  { id: 2, label: 'Kiểu 3', detail: 'Da đậm · Tóc đen · Kính lục' },
+  { id: 3, label: 'Kiểu 4', detail: 'Da vừa · Tóc đen · Kính hồng' },
+  { id: 4, label: 'Kiểu 5', detail: 'Da sáng · Tóc vàng · Kính cam' },
+] as const;
 export const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 export const ROOM_CODE_LENGTH = 4;
 export const ROOM_CODE_SET = '$roomcodes';

@@ -159,7 +159,13 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
       for (const member of members) {
         const row = document.createElement('div');
         row.className = `lobby-player team-${team}`;
-        row.textContent = `${member.sessionId === lobby.hostSessionId ? '♛ ' : ''}${member.name}${member.ready ? ' ✓' : ''}`;
+        const face = document.createElement('span');
+        face.className = 'lobby-face';
+        face.style.backgroundImage = `url('/assets/player_${team === 0 ? 'red' : 'blue'}_v${member.variant}.png')`;
+        const text = document.createElement('span');
+        text.className = `player-name team-text-${team}`;
+        text.textContent = `${member.sessionId === lobby.hostSessionId ? '♛ ' : ''}${member.name}${member.ready ? ' ✓' : ''}`;
+        row.append(face, text);
         column.append(row);
       }
       for (let index = members.length; index < lobby.teamSize; index++) {

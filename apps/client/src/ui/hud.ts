@@ -64,8 +64,10 @@ export function updateHud(root: HTMLElement, world: World, names: ReadonlyMap<nu
     face.className = 'chip-face';
     face.style.backgroundImage = `url('/assets/player_${player.team === 0 ? 'red' : 'blue'}_v${player.variant}.png')`;
     const name = document.createElement('span');
+    name.className = `chip-name team-text-${player.team}`;
     name.textContent = names.get(player.slot) ?? `#${player.slot}`;
     const stats = document.createElement('span');
+    stats.className = 'chip-stats';
     stats.textContent = `${chipStatus(player)} · KO ${player.stats.ko}`;
     chip.append(face, name, stats);
     chips.append(chip);

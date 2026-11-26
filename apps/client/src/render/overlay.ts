@@ -1,4 +1,4 @@
-import { TEAM_COLORS } from '@te-nuoc/shared';
+import { SELF_NAME_COLOR, TEAM_NAME_COLORS } from '@te-nuoc/shared';
 import type { PlayerState, Team } from '@te-nuoc/shared';
 
 export function visibleNameTags(players: { slot: number; team: Team }[], viewerTeam: Team | null): number[] {
@@ -22,24 +22,26 @@ export function drawNameTags(
   context.save();
   context.textAlign = 'center';
   context.textBaseline = 'bottom';
-  context.font = `${18 * pixelRatio}px VT323, monospace`;
-  context.lineWidth = 3 * pixelRatio;
+  context.font = `800 ${15 * pixelRatio}px 'Segoe UI', system-ui, -apple-system, sans-serif`;
+  context.lineWidth = 4 * pixelRatio;
+  context.lineJoin = 'round';
   for (const player of players) {
     if (!visible.has(player.slot) || player.status === 'respawning') continue;
     const name = names?.get(player.slot) ?? `#${player.slot}`;
-    const label = player.slot === viewerSlot ? `${name} (bạn)` : name;
+    const isSelf = player.slot === viewerSlot;
+    const label = isSelf ? `${name} (bạn)` : name;
     const x = player.x * scale * pixelRatio;
     const y = (player.y - 25) * scale * pixelRatio;
-    context.strokeStyle = '#2B1E2F';
-    context.fillStyle = TEAM_COLORS[player.team];
+    context.strokeStyle = '#181020';
+    context.fillStyle = isSelf ? SELF_NAME_COLOR : TEAM_NAME_COLORS[player.team];
     context.strokeText(label, x, y);
     context.fillText(label, x, y);
-    if (player.slot === viewerSlot) {
-      context.fillStyle = '#FFFFFF';
+    if (isSelf) {
+      context.fillStyle = SELF_NAME_COLOR;
       context.beginPath();
-      context.moveTo(x, y - 19 * pixelRatio);
-      context.lineTo(x - 4 * pixelRatio, y - 25 * pixelRatio);
-      context.lineTo(x + 4 * pixelRatio, y - 25 * pixelRatio);
+      context.moveTo(x, y - 18 * pixelRatio);
+      context.lineTo(x - 4.5 * pixelRatio, y - 24 * pixelRatio);
+      context.lineTo(x + 4.5 * pixelRatio, y - 24 * pixelRatio);
       context.fill();
     }
   }

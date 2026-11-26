@@ -28,8 +28,10 @@ export function startPractice(root: HTMLElement): () => void {
   panel.append(stack, hud, leave);
   root.append(panel);
 
+  const chosenVariant = Number(localStorage.getItem('te-nuoc-variant') ?? '0');
+  const ownVariant = Number.isInteger(chosenVariant) && chosenVariant >= 0 && chosenVariant < 5 ? chosenVariant : 0;
   const roster: RosterEntry[] = Array.from({ length: 8 }, (_, slot) => ({
-    slot, team: slot < 4 ? 0 : 1, variant: slot % 4, isBot: slot !== 0, joinOrder: slot,
+    slot, team: slot < 4 ? 0 : 1, variant: slot === 0 ? ownVariant : (slot + ownVariant) % 5, isBot: slot !== 0, joinOrder: slot,
   }));
   const names = new Map<number, string>();
   names.set(0, localStorage.getItem('te-nuoc-name') ?? 'Bạn');

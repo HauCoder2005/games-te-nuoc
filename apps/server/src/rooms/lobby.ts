@@ -20,6 +20,10 @@ export function publicStartDecision(humans: number, ready: number, full: boolean
   return null;
 }
 
+function clampVariant(variant: unknown): number | null {
+  return typeof variant === 'number' && Number.isInteger(variant) && variant >= 0 && variant < 5 ? variant : null;
+}
+
 export class LobbyModel {
   hostId: string | null = null;
   members: LobbyMember[] = [];
@@ -27,6 +31,7 @@ export class LobbyModel {
   phase: LobbyPhase = 'lobby';
   private nextJoinOrder = 0;
   private activeRoster: NamedRosterEntry[] = [];
+  private readonly preferredVariants = new Map<string, number>();
 
   constructor(readonly mode: 'public' | 'private') {}
 
@@ -37,18 +42,21 @@ export class LobbyModel {
     throw new Error('full');
   }
 
-  private firstFreeVariant(team: Team): number {
-    for (let variant = 0; variant < this.settings.teamSize; variant++) {
+  private firstFreeVariant(team: Team, preferred?: number | null): number {
+    if (preferred !== undefined && preferred !== null && preferred >= 0 && preferred < 5) {
+      if (!this.members.some((member) => member.team === team && member.variant === preferred)) return preferred;
+    }
+    for (let variant = 0; variant < 5; variant++) {
       if (!this.members.some((member) => member.team === team && member.variant === variant)) return variant;
     }
-    throw new Error('full');
+    return preferred ?? 0;
   }
 
   private counts(): [number, number] {
     return [this.members.filter((member) => member.team === 0).length, this.members.filter((member) => member.team === 1).length];
   }
 
-  join(sessionId: string, rawName: string): LobbyMember {
+  join(sessionId: string, rawName: string, preferredVariant?: unknown): LobbyMember {
     if (this.members.some((member) => member.sessionId === sessionId)) throw new Error('bad_request');
     const normalized = normalizeName(rawName);
     if (!normalized) throw new Error('bad_request');
@@ -56,10 +64,12 @@ export class LobbyModel {
     const preferred: Team = counts[0] <= counts[1] ? 0 : 1;
     const team: Team = counts[preferred] < this.settings.teamSize ? preferred : preferred === 0 ? 1 : 0;
     if (counts[team] >= this.settings.teamSize) throw new Error('full');
+    const chosenVariant = clampVariant(preferredVariant);
+    if (chosenVariant !== null) this.preferredVariants.set(sessionId, chosenVariant);
     const member: LobbyMember = {
       sessionId, slot: this.firstFreeSlot(),
       name: dedupeName(normalized, this.members.map((existing) => existing.name)),
-      team, variant: this.firstFreeVariant(team), joinOrder: this.nextJoinOrder++,
+      team, variant: chosenVariant ?? this.firstFreeVariant(team), joinOrder: this.nextJoinOrder++,
       ready: false, connected: true,
     };
     this.members.push(member);
@@ -68,6 +78,7 @@ export class LobbyModel {
   }
 
   leave(sessionId: string): void {
+    this.preferredVariants.delete(sessionId);
     this.members = this.members.filter((member) => member.sessionId !== sessionId);
     if (this.hostId === sessionId) {
       const earliest = [...this.members].sort((a, b) => a.joinOrder - b.joinOrder)[0];
@@ -82,7 +93,8 @@ export class LobbyModel {
     if (!member) return 'bad_request';
     if (member.team === team) return null;
     if (this.counts()[team] >= this.settings.teamSize) return 'full';
-    member.variant = this.firstFreeVariant(team);
+    const pref = this.preferredVariants.get(sessionId);
+    member.variant = pref ?? this.firstFreeVariant(team);
     member.team = team;
     return null;
   }
@@ -110,7 +122,7 @@ export class LobbyModel {
     shuffled.forEach((member, index) => {
       const team: Team = index % 2 === 0 ? 0 : 1;
       member.team = team;
-      member.variant = variants[team]++;
+      member.variant = this.preferredVariants.get(member.sessionId) ?? variants[team]++;
       member.ready = false;
     });
     return null;
@@ -132,13 +144,23 @@ export class LobbyModel {
     if (this.settings.botFill) {
       const taken = roster.map((entry) => entry.name);
       for (const team of [0, 1] as const) {
-        for (let variant = 0; variant < this.settings.teamSize; variant++) {
+        let teamCount = roster.filter((entry) => entry.team === team).length;
+        for (let variant = 0; variant < 5 && teamCount < this.settings.teamSize; variant++) {
           if (roster.some((entry) => entry.team === team && entry.variant === variant)) continue;
           const name = botName(taken);
           taken.push(name);
           let slot = 0;
           while (roster.some((entry) => entry.slot === slot)) slot++;
           roster.push({ slot, team, variant, isBot: true, joinOrder: this.nextJoinOrder + roster.length, name });
+          teamCount++;
+        }
+        for (let fallback = 0; teamCount < this.settings.teamSize; fallback++) {
+          const name = botName(taken);
+          taken.push(name);
+          let slot = 0;
+          while (roster.some((entry) => entry.slot === slot)) slot++;
+          roster.push({ slot, team, variant: fallback % 5, isBot: true, joinOrder: this.nextJoinOrder + roster.length, name });
+          teamCount++;
         }
       }
     }
@@ -147,7 +169,7 @@ export class LobbyModel {
     return roster;
   }
 
-  replaceBotWith(sessionId: string, name: string): LobbyMember | null {
+  replaceBotWith(sessionId: string, name: string, preferredVariant?: unknown): LobbyMember | null {
     if (this.mode !== 'private' || this.phase !== 'match') return null;
     const normalized = normalizeName(name);
     if (!normalized || this.members.some((member) => member.sessionId === sessionId)) return null;
@@ -155,13 +177,15 @@ export class LobbyModel {
     const team: Team = counts[0] <= counts[1] ? 0 : 1;
     if (counts[team] >= this.settings.teamSize) return null;
     const bot = this.activeRoster.find((entry) => entry.team === team && entry.isBot);
+    const chosenVariant = clampVariant(preferredVariant);
+    if (chosenVariant !== null) this.preferredVariants.set(sessionId, chosenVariant);
     let slot: number;
     let variant: number;
     if (bot) {
-      slot = bot.slot; variant = bot.variant;
+      slot = bot.slot; variant = chosenVariant ?? bot.variant;
       this.activeRoster = this.activeRoster.filter((entry) => entry !== bot);
     } else {
-      slot = this.firstFreeSlot(); variant = this.firstFreeVariant(team);
+      slot = this.firstFreeSlot(); variant = chosenVariant ?? this.firstFreeVariant(team);
     }
     const member: LobbyMember = {
       sessionId, slot, team, variant,

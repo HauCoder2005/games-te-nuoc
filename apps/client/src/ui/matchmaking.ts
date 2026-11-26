@@ -27,7 +27,13 @@ export function renderMatchmaking(root: HTMLElement, room: PublicRoomView, onLea
       if (member.team !== team) continue;
       const row = document.createElement('div');
       row.className = `lobby-player team-${team}`;
-      row.textContent = `${member.name}${member.ready ? ' ✓' : ''}`;
+      const face = document.createElement('span');
+      face.className = 'lobby-face';
+      face.style.backgroundImage = `url('/assets/player_${team === 0 ? 'red' : 'blue'}_v${member.variant}.png')`;
+      const text = document.createElement('span');
+      text.className = `player-name team-text-${team}`;
+      text.textContent = `${member.name}${member.ready ? ' ✓' : ''}`;
+      row.append(face, text);
       column.append(row);
     }
     teams.append(column);
