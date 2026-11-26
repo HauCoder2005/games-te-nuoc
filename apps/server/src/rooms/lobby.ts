@@ -1,5 +1,6 @@
 import {
-  botName, dedupeName, MAX_PLAYERS, normalizeName,
+  botName, dedupeName, MAX_PLAYERS, normalizeName, PUBLIC_FULL_WAIT,
+  PUBLIC_HALF_READY_WAIT, PUBLIC_MIN_HUMANS, START_COUNTDOWN,
 } from '@te-nuoc/shared';
 import type { ErrorCode, RosterEntry, Team } from '@te-nuoc/shared';
 
@@ -11,6 +12,13 @@ export interface LobbyMember {
 export interface LobbySettings { teamSize: 4 | 5; scoreToWin: 5 | 10 | 15; botFill: boolean }
 export interface NamedRosterEntry extends RosterEntry { name: string }
 export type LobbyPhase = 'lobby' | 'starting' | 'match';
+
+export function publicStartDecision(humans: number, ready: number, full: boolean): { countdown: number } | null {
+  if (humans >= PUBLIC_MIN_HUMANS && ready === humans) return { countdown: START_COUNTDOWN };
+  if (full || humans === MAX_PLAYERS) return { countdown: PUBLIC_FULL_WAIT };
+  if (humans >= PUBLIC_MIN_HUMANS && ready * 2 >= humans) return { countdown: PUBLIC_HALF_READY_WAIT };
+  return null;
+}
 
 export class LobbyModel {
   hostId: string | null = null;

@@ -8,7 +8,7 @@ import {
 import type { ErrorCode, InputFrame, World } from '@te-nuoc/shared';
 import { GameState, LobbyPlayer, LobbyState, RoomState } from './schema.js';
 import { generateRoomCode, releaseRoomCode } from './roomCode.js';
-import { LobbyModel } from './lobby.js';
+import { LobbyModel, publicStartDecision } from './lobby.js';
 import { MsgLimiter } from './msgLimiter.js';
 import { syncState } from './syncState.js';
 
@@ -50,6 +50,17 @@ export class MatchRoom extends Room<{ state: RoomState }> {
       if (!this.limiter.allow(client.sessionId, Date.now())) return;
       const error = this.lobby.shuffle(client.sessionId, () => randomInt(RNG_DIVISOR) / RNG_DIVISOR);
       if (error) this.sendError(client, error); else this.syncLobby();
+    },
+    [MSG.ready]: (client: Client, raw: unknown) => {
+      if (!this.limiter.allow(client.sessionId, Date.now())) return;
+      const member = this.lobby.members.find((candidate) => candidate.sessionId === client.sessionId);
+      if (this.mode !== 'public' || !member || this.world || !isObject(raw) || typeof raw.on !== 'boolean') {
+        this.sendError(client, 'bad_request');
+        return;
+      }
+      member.ready = raw.on;
+      this.updatePublicCountdown();
+      this.syncLobby();
     },
   };
 
@@ -109,6 +120,7 @@ export class MatchRoom extends Room<{ state: RoomState }> {
         this.namesBySlot.set(member.slot, member.name);
         syncState(this.world, this.state.game, this.namesBySlot);
       }
+      this.updatePublicCountdown();
       this.syncLobby();
     } catch (error) {
       throw new ServerError(400, error instanceof Error && error.message === 'full' ? ERROR_TEXT.full : ERROR_TEXT.bad_request);
@@ -130,6 +142,7 @@ export class MatchRoom extends Room<{ state: RoomState }> {
     }
     this.lobby.leave(client.sessionId);
     this.limiter.remove(client.sessionId);
+    this.updatePublicCountdown();
     this.syncLobby();
   }
 
@@ -144,6 +157,7 @@ export class MatchRoom extends Room<{ state: RoomState }> {
     target.code = this.code;
     target.hostSessionId = this.lobby.hostId ?? '';
     target.phase = this.lobby.phase;
+    target.countdown = this.publicCountdown;
     target.teamSize = this.lobby.settings.teamSize;
     target.scoreToWin = this.lobby.settings.scoreToWin;
     target.botFill = this.lobby.settings.botFill;
@@ -184,6 +198,27 @@ export class MatchRoom extends Room<{ state: RoomState }> {
   private startMatch(client: Client): void {
     const error = this.lobby.canHostStart(client.sessionId);
     if (error) { this.sendError(client, error); return; }
+    this.beginMatch();
+  }
+
+  private publicCountdown = 0;
+
+  private updatePublicCountdown(): void {
+    if (this.mode !== 'public' || this.world) return;
+    const humans = this.lobby.members.length;
+    const ready = this.lobby.members.filter((member) => member.ready).length;
+    const decision = publicStartDecision(humans, ready, humans >= MAX_PLAYERS);
+    if (!decision) {
+      this.publicCountdown = 0;
+      this.lobby.phase = 'lobby';
+    } else {
+      this.publicCountdown = this.publicCountdown > 0
+        ? Math.min(this.publicCountdown, decision.countdown) : decision.countdown;
+      this.lobby.phase = 'starting';
+    }
+  }
+
+  private beginMatch(): void {
     const roster = this.lobby.buildRoster();
     const seed = randomInt(RNG_DIVISOR);
     this.world = createMatch(seed, roster, this.lobby.settings);
@@ -196,6 +231,8 @@ export class MatchRoom extends Room<{ state: RoomState }> {
       if (entry.isBot) this.botMemory.set(entry.slot, createBotMemory(seed + entry.slot));
     }
     this.lobby.phase = 'match';
+    this.publicCountdown = 0;
+    if (this.mode === 'public') void this.lock();
     this.matchEndLogged = false;
     this.syncLobby();
     syncState(this.world, this.state.game, this.namesBySlot);
@@ -203,6 +240,11 @@ export class MatchRoom extends Room<{ state: RoomState }> {
   }
 
   private tick(dt: number): void {
+    if (!this.world && this.mode === 'public' && this.publicCountdown > 0) {
+      this.publicCountdown = Math.max(0, this.publicCountdown - dt);
+      this.state.lobby.countdown = this.publicCountdown;
+      if (this.publicCountdown === 0) this.beginMatch();
+    }
     if (!this.world) return;
     const inputs = new Map(this.latestInputs);
     for (const player of this.world.players) {
@@ -226,6 +268,7 @@ export class MatchRoom extends Room<{ state: RoomState }> {
       this.state.game = this.newGameState();
       this.lobby.phase = 'lobby';
       for (const member of this.lobby.members) member.ready = false;
+      if (this.mode === 'public' && this.lobby.members.length < MAX_PLAYERS) void this.unlock();
       this.syncLobby();
     }
   }
