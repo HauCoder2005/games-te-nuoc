@@ -10,6 +10,8 @@ import { loadSprites } from '../render/sprites';
 import { updateHud, killFeedLine } from './hud';
 import { playSfx, unlockAudio } from '../audio/sfx';
 import { showHome } from './home';
+import { renderMatchmaking } from './matchmaking';
+import { CONNECTION_LOST_TEXT } from './errors';
 
 function button(label: string, action: () => void): HTMLButtonElement {
   const element = document.createElement('button');
@@ -98,6 +100,8 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
     renderer?.pushEvents(events, world?.time ?? 0);
   });
   room.onLeave(() => { if (!stopped) { dispose(); showHome(root); } });
+  room.onDrop(() => { error.textContent = CONNECTION_LOST_TEXT; });
+  room.onReconnect(() => { error.textContent = ''; });
 
   let input: ReturnType<typeof createInput> | null = null;
   let renderer: ReturnType<typeof createRenderer> | null = null;
@@ -107,6 +111,11 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
 
   function showLobby(): void {
     const lobby = room.state.lobby;
+    if (lobby.mode === 'public') {
+      renderMatchmaking(panel, room, () => { dispose(); showHome(root); });
+      panel.append(error);
+      return;
+    }
     panel.replaceChildren();
     const heading = document.createElement('h1');
     heading.textContent = lobby.mode === 'private' ? `Phòng ${lobby.code}` : 'Đang tìm người chơi…';
@@ -207,9 +216,9 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
       clearInterval(timer);
       if (phase === 'match') showGame(); else { panel.className = 'online'; world = null; lastLobbySignature = ''; }
     }
-    if (phase === 'lobby') {
+    if (phase !== 'match') {
       const lobby = room.state.lobby;
-      const signature = JSON.stringify([lobby.code, lobby.hostSessionId, lobby.countdown,
+      const signature = JSON.stringify([lobby.code, lobby.hostSessionId, Math.ceil(lobby.countdown),
         lobby.teamSize, lobby.scoreToWin, lobby.botFill,
         [...lobby.players.values()].map((member) => [member.sessionId, member.name, member.team, member.ready])]);
       if (signature !== lastLobbySignature) { lastLobbySignature = signature; showLobby(); }
