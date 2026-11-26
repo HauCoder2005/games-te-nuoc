@@ -69,5 +69,6 @@ export const INTERP_DELAY_MS = 120;
 export const PROTOCOL_VERSION = 3;
 export const TEAM_COLORS = ['#E53B3B', '#3B8BF0'] as const;
 export const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+export const MAX_NAME_LENGTH = 12;
 export const RNG_INCREMENT = 0x6D2B79F5;
 export const RNG_DIVISOR = 4294967296;
