@@ -32,6 +32,7 @@ export function createMatch(seed: number, roster: RosterEntry[], settings: Match
     timeLeft: MATCH_TIME, settings, players: [], balloons: [], nextBalloonId: 1,
     raft: { w: RAFT_W, h: RAFT_H, warn: false, warnTimer: 0 },
     score: [0, 0], lastMinuteDone: false, goldenTimer: 0, winner: null,
+    chainCd: {},
   };
   for (const entry of [...roster].sort((a, b) => a.slot - b.slot)) addPlayer(w, entry);
   return w;
@@ -141,7 +142,7 @@ export function step(w: World, inputs: Map<number, InputFrame>, dt: number): Gam
   }
   const covers = activeCovers(w.raft);
   for (const p of w.players) resolveCovers(p, covers);
-  resolveOverlaps(w.players, w.time, events);
+  resolveOverlaps(w.players, w.time, events, w.chainCd);
   stepBalloons(w, dt, events);
   for (const p of w.players) {
     if (p.status !== 'falling' && p.status !== 'respawning' && !isOnRaft(p.x, p.y, w.raft)) onFall(w, p, events);

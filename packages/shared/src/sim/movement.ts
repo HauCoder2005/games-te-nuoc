@@ -1,4 +1,7 @@
-import { DASH_COOLDOWN, DASH_SPEED, DASH_TIME, HITSTUN_CONTROL, KB_DECAY, MOVE_ACCEL, MOVE_SPEED, PLAYER_RADIUS, TILE } from '../config';
+import {
+  CHAIN_COOLDOWN, CHAIN_KB_MIN, CHAIN_TRANSFER, DASH_COOLDOWN, DASH_SPEED, DASH_TIME,
+  HITSTUN_CONTROL, KB_DECAY, MOVE_ACCEL, MOVE_SPEED, PLAYER_RADIUS, TILE,
+} from '../config';
 import { applyHit } from './hit';
 import type { GameEvent, InputFrame, PlayerState } from './types';
 
@@ -46,7 +49,12 @@ function stopDash(p: PlayerState): void {
   p.dashY = 0;
 }
 
-export function resolveOverlaps(players: PlayerState[], time: number, events: GameEvent[]): void {
+export function resolveOverlaps(
+  players: PlayerState[],
+  time: number,
+  events: GameEvent[],
+  chainCd: Record<string, number> = {},
+): void {
   for (let i = 0; i < players.length; i++) {
     const a = players[i];
     if (a.status === 'falling' || a.status === 'respawning') continue;
@@ -64,6 +72,22 @@ export function resolveOverlaps(players: PlayerState[], time: number, events: Ga
       a.y -= ny * overlap / 2;
       b.x += nx * overlap / 2;
       b.y += ny * overlap / 2;
+      if (a.team === b.team) {
+        const key = a.slot < b.slot ? `${a.slot}-${b.slot}` : `${b.slot}-${a.slot}`;
+        if (time >= (chainCd[key] ?? 0)) {
+          const kbA = Math.hypot(a.kbx, a.kby);
+          const kbB = Math.hypot(b.kbx, b.kby);
+          if (kbA >= kbB && kbA > CHAIN_KB_MIN && b.status !== 'protected') {
+            b.kbx += a.kbx * CHAIN_TRANSFER;
+            b.kby += a.kby * CHAIN_TRANSFER;
+            chainCd[key] = time + CHAIN_COOLDOWN;
+          } else if (kbB > kbA && kbB > CHAIN_KB_MIN && a.status !== 'protected') {
+            a.kbx += b.kbx * CHAIN_TRANSFER;
+            a.kby += b.kby * CHAIN_TRANSFER;
+            chainCd[key] = time + CHAIN_COOLDOWN;
+          }
+        }
+      }
       if (a.status === 'dashing') {
         if (a.team !== b.team && b.status !== 'protected' && a.dashX * nx + a.dashY * ny > 0) {
           applyHit(b, 'dash', a.dashX, a.dashY, a.slot, time);

@@ -17,6 +17,7 @@ export interface World {
   tick: number; time: number; rng: number; phase: Phase; phaseTimer: number; timeLeft: number;
   settings: MatchSettings; players: PlayerState[]; balloons: BalloonState[]; nextBalloonId: number;
   raft: RaftState; score: [number, number]; lastMinuteDone: boolean; goldenTimer: number; winner: Team | null;
+  chainCd: Record<string, number>;
 }
 export type GameEvent =
   | { k: 'throw'; slot: number } | { k: 'burst'; x: number; y: number; direct: boolean; team: Team }
