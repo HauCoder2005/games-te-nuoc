@@ -1,0 +1,9 @@
+@import '@fontsource/vt323/400.css';
+
+:root { font-family: 'VT323', monospace; color: #e9fcff; background: #2b1e2f; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; }
+#app { min-height: 100vh; display: grid; place-items: center; }
+.game-stack { position: relative; flex: none; }
+.game-stack canvas { position: absolute; inset: 0; display: block; }
+.game-stack canvas:first-child { image-rendering: pixelated; }

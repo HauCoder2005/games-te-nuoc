@@ -9,6 +9,7 @@
   "scripts": {
     "test": "vitest run test",
     "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "tune": "tsx scripts/tune.ts"
   },
   "devDependencies": {
