@@ -28,3 +28,13 @@ button:hover { filter: brightness(1.1); }
 .team-1 { border-top: 3px solid #3b8bf0; }
 .leave { position: absolute; top: 70px; left: 8px; padding: 2px 8px; font-size: 20px; }
 .result { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 14px 24px; background: #231629; border: 3px solid #ffcf44; font-size: 36px; white-space: nowrap; }
+.online { width: min(900px, 96vw); padding: 24px; background: #231629; border: 3px solid #e9fcff; text-align: center; font-size: 25px; }
+.online h1 { margin: 0 0 12px; color: #ffcf44; font-size: 48px; }
+.teams { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 16px 0; }
+.teams section { border: 2px solid #e9fcff; padding: 10px; display: grid; gap: 5px; }
+.teams h2 { margin: 0; font-size: 32px; }
+.lobby-player, .lobby-empty { min-height: 34px; padding: 2px 8px; text-align: left; background: #392942; }
+.lobby-empty { color: #a8a0ad; }
+.settings { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 12px 0; }
+.online button { margin: 4px; }
+.error { color: #ffb35c; }

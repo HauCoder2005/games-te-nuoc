@@ -10,3 +10,4 @@ Mỗi dòng: `YYYY-MM-DD · Task N · quyết định · lý do`.
 2026-11-26 · Task 11 · Tạo mã phòng bằng `crypto.randomInt` và giữ tập mã đang cấp phát trong tiến trình · Mã riêng cần khó đoán và tránh hai lời gọi đồng thời nhận cùng mã trước khi Presence kịp lưu.
 2026-11-26 · Task 12 · `buildRoster` trả thêm tên trên mỗi `RosterEntry` · Kiểu `RosterEntry` trong plan không có tên dù bot cần tên để hiện ở sảnh và trong trận.
 2026-11-26 · Task 13 · Thêm tên, đội, biến thể và cờ bot vào `GamePlayer` Schema · Client cần các thuộc tính này để vẽ đồng phục, tên đồng đội và bot sau khi nhận trạng thái trận.
+2026-11-26 · Task 14 · Dùng nội suy và dự đoán vị trí dự phòng thay cho `@colyseus/sdk` Predictor · SDK Predictor cần trạng thái và thao tác xác nhận riêng, trong khi server đang gửi Schema cùng `ackSeq` theo giao thức đã định; lớp dự phòng khớp ngay với dữ liệu này.

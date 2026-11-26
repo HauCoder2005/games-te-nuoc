@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@colyseus/sdk": "^0.18.10",
     "@fontsource/vt323": "^5.2.8",
     "@te-nuoc/shared": "0.1.0"
   },
