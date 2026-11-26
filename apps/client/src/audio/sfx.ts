@@ -12,7 +12,8 @@ export function playSfx(event: GameEvent): void {
   const notes: Record<GameEvent['k'], [number, number, number]> = {
     throw: [380, 0.08, 100], burst: [190, 0.18, -140], hit: [120, 0.16, -90],
     fall: [260, 0.28, -230], score: [660, 0.35, 360], respawn: [480, 0.18, 160],
-    streak: [780, 0.25, 220], matchPoint: [650, 0.35, 120], lastMinute: [440, 0.3, -160],
+    streak: [780, 0.25, 220], matchPoint: [650, 0.35, 120], pillarCaptured: [740, 0.4, 280],
+    lastMinute: [440, 0.3, -160],
     golden: [890, 0.5, 420], shrinkWarn: [310, 0.15, -70], shrink: [150, 0.24, -100],
     matchEnd: [920, 0.55, -420],
   };

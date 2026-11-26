@@ -46,6 +46,32 @@ export function updateHud(root: HTMLElement, world: World, names: ReadonlyMap<nu
   const clock = document.createElement('div');
   clock.className = 'clock';
   clock.textContent = formatClock(world.timeLeft);
+
+  const pillarHud = document.createElement('div');
+  pillarHud.className = 'pillar-hud';
+  const pillarText = document.createElement('div');
+  pillarText.className = 'pillar-text';
+  const pct = Math.round(world.pillar.progress * 100);
+  if (world.pillar.contested) {
+    pillarText.textContent = '⚔️ CỘT GIỮA: ĐANG TRANH CHẤP!';
+  } else if (world.pillar.capturingTeam !== null && world.pillar.progress > 0) {
+    const teamName = world.pillar.capturingTeam === 0 ? 'ĐỘI ĐỎ' : 'ĐỘI XANH';
+    pillarText.textContent = `🚩 ${teamName} ĐANG CHIẾM CỘT (${pct}%)`;
+  } else if (world.pillar.owner !== null) {
+    const teamName = world.pillar.owner === 0 ? 'ĐỘI ĐỎ' : 'ĐỘI XANH';
+    pillarText.textContent = `🏛️ CỘT GIỮA: ${teamName} ĐANG GIỮ (+1 điểm mỗi 7s)`;
+  } else {
+    pillarText.textContent = '🏛️ CỘT GIỮA: CHƯA AI CHIẾM (Đứng vào vòng tròn giữa bè)';
+  }
+  const pillarBar = document.createElement('div');
+  pillarBar.className = 'pillar-bar';
+  const pillarFill = document.createElement('div');
+  const activeTeam = world.pillar.capturingTeam ?? world.pillar.owner;
+  pillarFill.className = `pillar-fill ${activeTeam === 0 ? 'pillar-fill-red' : activeTeam === 1 ? 'pillar-fill-blue' : ''}`;
+  pillarFill.style.width = `${world.pillar.owner !== null && world.pillar.capturingTeam === null ? 100 : pct}%`;
+  pillarBar.append(pillarFill);
+  pillarHud.append(pillarText, pillarBar);
+
   if (options.banner) {
     const banner = document.createElement('div'); banner.className = 'banner'; banner.textContent = options.banner; root.append(banner);
   }
@@ -73,5 +99,5 @@ export function updateHud(root: HTMLElement, world: World, names: ReadonlyMap<nu
     chip.append(face, name, stats);
     chips.append(chip);
   }
-  root.append(score, clock, messages, chips);
+  root.append(score, clock, pillarHud, messages, chips);
 }

@@ -23,6 +23,8 @@ export interface NetState {
     balloons: Map<string, { id: number; owner: number; team: Team; x: number; y: number }>;
     raftW: number; raftH: number; warn: boolean; red: number; blue: number;
     phase: string; timeLeft: number;
+    pillarOwner: number; pillarTeam: number; pillarProgress: number;
+    pillarContested: boolean; pillarHold: number;
   };
 }
 export type GameRoom = Room<unknown, NetState>;

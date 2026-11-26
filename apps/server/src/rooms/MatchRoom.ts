@@ -76,6 +76,7 @@ export class MatchRoom extends Room<{ state: RoomState }> {
     return new GameState({
       raftW: RAFT_W, raftH: RAFT_H, warn: false, red: 0, blue: 0,
       phase: 'countdown', timeLeft: MATCH_TIME,
+      pillarOwner: -1, pillarTeam: -1, pillarProgress: 0, pillarContested: false, pillarHold: 0,
     });
   }
 

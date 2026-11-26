@@ -1,4 +1,8 @@
-import { FALL_TIME, GOLDEN_SHRINK_EVERY, KO_CREDIT_WINDOW, LAST_MINUTE_AT, MATCH_END_TIME, SHRINK_WARNING } from '../config';
+import {
+  FALL_TIME, GOLDEN_SHRINK_EVERY, KO_CREDIT_WINDOW, LAST_MINUTE_AT, MATCH_END_TIME,
+  PILLAR_CAPTURE_TIME, PILLAR_DECAY_RATE, PILLAR_HOLD_SCORE_TIME, PILLAR_RADIUS,
+  RAFT_CENTER, SHRINK_WARNING,
+} from '../config';
 import { shrunk } from './raft';
 import type { Awards, GameEvent, PlayerState, Team, World } from './types';
 
@@ -16,6 +20,79 @@ export function endMatch(w: World, winner: Team, events: GameEvent[]): void {
   w.phaseTimer = MATCH_END_TIME;
   w.winner = winner;
   events.push({ k: 'matchEnd', winner, awards: computeAwards(w) });
+}
+
+export function awardTeamScore(w: World, scoringTeam: Team, events: GameEvent[]): void {
+  if (w.phase === 'matchEnd') return;
+  w.score[scoringTeam]++;
+  events.push({ k: 'score', team: scoringTeam, red: w.score[0], blue: w.score[1] });
+  if (w.phase === 'golden' || w.score[scoringTeam] >= w.settings.scoreToWin) {
+    endMatch(w, scoringTeam, events);
+  } else if (w.score[scoringTeam] === w.settings.scoreToWin - 1) {
+    const teams: Team[] = [];
+    if (w.score[0] === w.settings.scoreToWin - 1) teams.push(0);
+    if (w.score[1] === w.settings.scoreToWin - 1) teams.push(1);
+    events.push({ k: 'matchPoint', teams });
+  }
+}
+
+export function updatePillar(w: World, dt: number, events: GameEvent[]): void {
+  if (w.phase !== 'playing' && w.phase !== 'golden') return;
+  const counts: [number, number] = [0, 0];
+  for (const p of w.players) {
+    if (p.status === 'falling' || p.status === 'respawning') continue;
+    if (Math.hypot(p.x - RAFT_CENTER.x, p.y - RAFT_CENTER.y) <= PILLAR_RADIUS) {
+      counts[p.team]++;
+    }
+  }
+  const pillar = w.pillar;
+  pillar.contested = counts[0] > 0 && counts[1] > 0;
+  const activeTeam: Team | null = counts[0] > 0 && counts[1] === 0 ? 0
+    : counts[1] > 0 && counts[0] === 0 ? 1 : null;
+
+  if (!pillar.contested) {
+    if (activeTeam !== null) {
+      const n = counts[activeTeam];
+      const speedBonus = 1 + (n - 1) * 0.25;
+      const rate = (1 / PILLAR_CAPTURE_TIME) * speedBonus;
+      if (pillar.owner === activeTeam) {
+        if (pillar.progress > 0) {
+          pillar.progress = Math.max(0, pillar.progress - rate * dt);
+          if (pillar.progress === 0) pillar.capturingTeam = null;
+        }
+      } else {
+        if (pillar.capturingTeam !== null && pillar.capturingTeam !== activeTeam) {
+          pillar.progress = Math.max(0, pillar.progress - rate * dt);
+          if (pillar.progress === 0) pillar.capturingTeam = activeTeam;
+        } else {
+          pillar.capturingTeam = activeTeam;
+          pillar.progress = Math.min(1, pillar.progress + rate * dt);
+          if (pillar.progress >= 1) {
+            pillar.owner = activeTeam;
+            pillar.capturingTeam = null;
+            pillar.progress = 0;
+            pillar.holdTimer = 0;
+            events.push({ k: 'pillarCaptured', team: activeTeam });
+            awardTeamScore(w, activeTeam, events);
+            return;
+          }
+        }
+      }
+    } else if (pillar.progress > 0) {
+      const decay = (1 / PILLAR_CAPTURE_TIME) * PILLAR_DECAY_RATE * dt;
+      pillar.progress = Math.max(0, pillar.progress - decay);
+      if (pillar.progress === 0) pillar.capturingTeam = null;
+    }
+  }
+
+  if (pillar.owner !== null && !pillar.contested && counts[pillar.owner === 0 ? 1 : 0] === 0) {
+    pillar.holdTimer += dt;
+    while (pillar.holdTimer >= PILLAR_HOLD_SCORE_TIME) {
+      pillar.holdTimer -= PILLAR_HOLD_SCORE_TIME;
+      awardTeamScore(w, pillar.owner, events);
+      if ((w.phase as string) === 'matchEnd') break;
+    }
+  }
 }
 
 export function onFall(w: World, p: PlayerState, events: GameEvent[]): void {
@@ -38,16 +115,7 @@ export function onFall(w: World, p: PlayerState, events: GameEvent[]): void {
     events.push({ k: 'streak', slot: credited.slot, n: credited.stats.streak });
   }
   const scoringTeam: Team = p.team === 0 ? 1 : 0;
-  w.score[scoringTeam]++;
-  events.push({ k: 'score', team: scoringTeam, red: w.score[0], blue: w.score[1] });
-  if (w.phase === 'golden' || w.score[scoringTeam] >= w.settings.scoreToWin) {
-    endMatch(w, scoringTeam, events);
-  } else if (w.score[scoringTeam] === w.settings.scoreToWin - 1) {
-    const teams: Team[] = [];
-    if (w.score[0] === w.settings.scoreToWin - 1) teams.push(0);
-    if (w.score[1] === w.settings.scoreToWin - 1) teams.push(1);
-    events.push({ k: 'matchPoint', teams });
-  }
+  awardTeamScore(w, scoringTeam, events);
 }
 
 function warnShrink(w: World, events: GameEvent[]): void {

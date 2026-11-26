@@ -31,6 +31,8 @@ export const GameState = schema({
   players: t.map(GamePlayer), balloons: t.map(GameBalloon),
   raftW: t.uint8(), raftH: t.uint8(), warn: t.boolean(), red: t.uint8(), blue: t.uint8(),
   phase: t.string(), timeLeft: t.float32(),
+  pillarOwner: t.int8(), pillarTeam: t.int8(), pillarProgress: t.float32(),
+  pillarContested: t.boolean(), pillarHold: t.float32(),
 }, 'GameState');
 export type GameState = SchemaType<typeof GameState>;
 

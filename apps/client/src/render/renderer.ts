@@ -1,5 +1,5 @@
 import {
-  balloonHeight, activeCovers, CHARACTER_VARIANTS, homeZone, POOL_RECT, raftRect, RAFT_CENTER, TEAM_COLORS,
+  balloonHeight, activeCovers, CHARACTER_VARIANTS, homeZone, PILLAR_RADIUS, POOL_RECT, raftRect, RAFT_CENTER, TEAM_COLORS,
   TILE, VIEW_H, VIEW_W,
 } from '@te-nuoc/shared';
 import type { GameEvent, PlayerState, World } from '@te-nuoc/shared';
@@ -58,6 +58,82 @@ function drawRaft(ctx: CanvasRenderingContext2D, view: RenderView, bank: SpriteB
   for (let y = rect.y0; y < rect.y1; y += 12) ctx.fillRect(RAFT_CENTER.x, y, 1, 6);
   drawFrame(ctx, bank?.image('flag_red') ?? null, rect.x0 + TILE, RAFT_CENTER.y);
   drawFrame(ctx, bank?.image('flag_blue') ?? null, rect.x1 - TILE, RAFT_CENTER.y);
+}
+
+function drawPillarZone(ctx: CanvasRenderingContext2D, view: RenderView): void {
+  const cx = RAFT_CENTER.x;
+  const cy = RAFT_CENTER.y;
+  const pillar = view.pillar;
+  const ownerColor = pillar.owner === 0 ? TEAM_COLORS[0] : pillar.owner === 1 ? TEAM_COLORS[1] : '#FFD166';
+  const captureColor = pillar.capturingTeam === 0 ? TEAM_COLORS[0] : pillar.capturingTeam === 1 ? TEAM_COLORS[1] : ownerColor;
+
+  ctx.save();
+  // Capture zone fill
+  ctx.fillStyle = pillar.owner === 0 ? 'rgba(229, 59, 59, 0.22)'
+    : pillar.owner === 1 ? 'rgba(59, 139, 240, 0.22)' : 'rgba(255, 209, 102, 0.16)';
+  ctx.beginPath();
+  ctx.arc(cx, cy, PILLAR_RADIUS, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Outer dashed boundary ring
+  ctx.strokeStyle = pillar.contested ? '#FFE066' : ownerColor;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.arc(cx, cy, PILLAR_RADIUS, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Capture progress arc
+  if (pillar.progress > 0) {
+    ctx.strokeStyle = captureColor;
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, PILLAR_RADIUS - 3, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pillar.progress);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawPillarTower(ctx: CanvasRenderingContext2D, view: RenderView): void {
+  const cx = RAFT_CENTER.x;
+  const cy = RAFT_CENTER.y;
+  const pillar = view.pillar;
+  const activeColor = pillar.owner === 0 ? TEAM_COLORS[0] : pillar.owner === 1 ? TEAM_COLORS[1]
+    : pillar.capturingTeam !== null ? TEAM_COLORS[pillar.capturingTeam] : '#FFD166';
+
+  ctx.save();
+  // Stone pedestal base
+  ctx.fillStyle = '#2B1E2F';
+  ctx.fillRect(cx - 10, cy - 6, 20, 10);
+  ctx.fillStyle = '#7C7287';
+  ctx.fillRect(cx - 9, cy - 5, 18, 8);
+  ctx.fillStyle = '#A399B2';
+  ctx.fillRect(cx - 8, cy - 5, 16, 3);
+
+  // Pillar column
+  ctx.fillStyle = '#2B1E2F';
+  ctx.fillRect(cx - 6, cy - 28, 12, 23);
+  ctx.fillStyle = '#E4DCF0';
+  ctx.fillRect(cx - 5, cy - 27, 10, 21);
+
+  // Team energy fill rising up the column
+  const fillRatio = pillar.owner !== null ? 1 : pillar.progress;
+  if (fillRatio > 0) {
+    const h = Math.round(19 * fillRatio);
+    ctx.fillStyle = activeColor;
+    ctx.fillRect(cx - 4, cy - 7 - h, 8, h);
+  }
+
+  // Beacon crystal on top
+  const pulse = Math.sin(view.time * 6) > 0 ? 1 : 0;
+  ctx.fillStyle = '#2B1E2F';
+  ctx.fillRect(cx - 5 - pulse, cy - 35 - pulse, 10 + pulse * 2, 8 + pulse * 2);
+  ctx.fillStyle = activeColor;
+  ctx.fillRect(cx - 4, cy - 34, 8, 6);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(cx - 2, cy - 33, 3, 2);
+  ctx.restore();
 }
 
 function drawCharacterTraits(ctx: CanvasRenderingContext2D, player: PlayerState): void {
@@ -186,6 +262,7 @@ export function createRenderer(canvas: HTMLCanvasElement, overlay: HTMLCanvasEle
       }
       context.restore();
       drawRaft(context, view, bank);
+      drawPillarZone(context, view);
       for (const player of view.players) {
         if (player.status === 'respawning') continue;
         context.fillStyle = 'rgba(43, 30, 47, 0.3)';
@@ -193,7 +270,9 @@ export function createRenderer(canvas: HTMLCanvasElement, overlay: HTMLCanvasEle
         context.fillStyle = TEAM_COLORS[player.team];
         context.beginPath(); context.ellipse(player.x, player.y, 6, 2.5, 0, 0, Math.PI * 2); context.fill();
       }
-      const entities: { y: number; draw: () => void }[] = [];
+      const entities: { y: number; draw: () => void }[] = [
+        { y: RAFT_CENTER.y, draw: () => drawPillarTower(context, view) },
+      ];
       for (const cover of activeCovers(view.raft)) entities.push({ y: cover.y + 8, draw: () => {
         if (!drawFrame(context, bank?.image('cover') ?? null, cover.x, cover.y + 8)) {
           context.fillStyle = '#E9FCFF'; context.fillRect(cover.x - 8, cover.y - 8, 16, 16);

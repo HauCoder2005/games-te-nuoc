@@ -50,6 +50,13 @@ function worldFromRoom(room: GameRoom, current: World | null): World | null {
     ...balloon, dx: 0, dy: 0, traveled: 0, maxDist: 1,
   }));
   world.raft = { ...world.raft, w: game.raftW, h: game.raftH, warn: game.warn };
+  world.pillar = {
+    owner: game.pillarOwner === 0 || game.pillarOwner === 1 ? game.pillarOwner : null,
+    capturingTeam: game.pillarTeam === 0 || game.pillarTeam === 1 ? game.pillarTeam : null,
+    progress: game.pillarProgress ?? 0,
+    contested: Boolean(game.pillarContested),
+    holdTimer: game.pillarHold ?? 0,
+  };
   world.score = [game.red, game.blue];
   world.phase = game.phase as World['phase'];
   world.timeLeft = game.timeLeft;

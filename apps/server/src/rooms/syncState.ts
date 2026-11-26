@@ -56,4 +56,9 @@ export function syncState(world: World, target: GameState, names: ReadonlyMap<nu
   target.blue = world.score[1];
   target.phase = world.phase;
   target.timeLeft = world.timeLeft;
+  target.pillarOwner = world.pillar.owner ?? -1;
+  target.pillarTeam = world.pillar.capturingTeam ?? -1;
+  target.pillarProgress = world.pillar.progress;
+  target.pillarContested = world.pillar.contested;
+  target.pillarHold = world.pillar.holdTimer;
 }

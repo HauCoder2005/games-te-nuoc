@@ -1,7 +1,7 @@
 import {
   BALLOON_RANGE_MAX, BALLOON_SPEED, BOT_DASH_CHANCE, BOT_DASH_DIST,
   BOT_EDGE_DIST, BOT_MAX_DIST, BOT_MIN_DIST, BOT_REACT_MAX, BOT_REACT_MIN,
-  RAFT_CENTER,
+  PILLAR_RADIUS, RAFT_CENTER,
 } from '../config';
 import { raftRect } from './raft';
 import { nextRng } from './rng';
@@ -57,8 +57,22 @@ export function botInput(w: World, slot: number, mem: BotMemory): InputFrame {
     ay = target.y + (target.mvy + target.kby) * leadTime;
     if (distance > BOT_MAX_DIST) { mx = dx / distance; my = dy / distance; }
     else if (distance < BOT_MIN_DIST && distance > 0) { mx = -dx / distance; my = -dy / distance; }
+    if (w.pillar && w.pillar.owner !== bot.team) {
+      const pdx = RAFT_CENTER.x - bot.x;
+      const pdy = RAFT_CENTER.y - bot.y;
+      const pdist = Math.hypot(pdx, pdy);
+      if (pdist > PILLAR_RADIUS * 0.75) {
+        mx = mx * 0.55 + (pdx / pdist) * 0.45;
+        my = my * 0.55 + (pdy / pdist) * 0.45;
+      }
+    }
     if (distance <= BALLOON_RANGE_MAX && bot.ammo > 0 && bot.throwCd <= 0) mem.th++;
     if (distance < BOT_DASH_DIST && bot.dashCd <= 0 && !nearEdge && random(mem) < BOT_DASH_CHANCE) mem.da++;
+  } else if (w.pillar && w.pillar.owner !== bot.team) {
+    const pdx = RAFT_CENTER.x - bot.x;
+    const pdy = RAFT_CENTER.y - bot.y;
+    const pdist = Math.hypot(pdx, pdy);
+    if (pdist > PILLAR_RADIUS * 0.5) { mx = pdx / pdist; my = pdy / pdist; }
   }
   if (bot.x - bounds.x0 < BOT_EDGE_DIST) mx = 1;
   else if (bounds.x1 - bot.x < BOT_EDGE_DIST) mx = -1;

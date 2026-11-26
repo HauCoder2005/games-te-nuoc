@@ -23,7 +23,9 @@ export function mkWorld(players: PlayerState[] = []): World {
   return {
     tick: 0, time: 0, rng: 1, phase: 'playing', phaseTimer: 0, timeLeft: MATCH_TIME,
     settings: { teamSize: 5, scoreToWin: 10 }, players, balloons: [], nextBalloonId: 1,
-    raft: { ...R0 }, score: [0, 0], lastMinuteDone: false, goldenTimer: 0, winner: null,
+    raft: { ...R0 },
+    pillar: { owner: null, capturingTeam: null, progress: 0, contested: false, holdTimer: 0 },
+    score: [0, 0], lastMinuteDone: false, goldenTimer: 0, winner: null,
     chainCd: {},
   };
 }

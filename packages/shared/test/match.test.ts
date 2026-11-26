@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
-import { FALL_TIME, GOLDEN_SHRINK_EVERY, SHRINK_WARNING } from '../src/config';
-import { computeAwards, onFall, updateClock } from '../src/sim/match';
+import { FALL_TIME, GOLDEN_SHRINK_EVERY, PILLAR_CAPTURE_TIME, PILLAR_HOLD_SCORE_TIME, SHRINK_WARNING } from '../src/config';
+import { computeAwards, onFall, updateClock, updatePillar } from '../src/sim/match';
 import type { GameEvent } from '../src/sim/types';
 import { mkPlayer, mkWorld } from './helpers';
 
@@ -85,4 +85,33 @@ it('awards use join order for ties', () => {
   const first = mkPlayer({ slot: 3, joinOrder: 0, stats: { ko: 2, direct: 4, falls: 3, streak: 0 } });
   const second = mkPlayer({ slot: 1, joinOrder: 1, stats: { ko: 2, direct: 4, falls: 3, streak: 0 } });
   expect(computeAwards(mkWorld([second, first]))).toEqual({ mvp: 3, sharpshooter: 3, mostFalls: 3 });
+});
+it('center pillar takes long to capture, stalls when contested, and scores over time', () => {
+  const red = mkPlayer({ slot: 0, team: 0, x: 320, y: 199 });
+  const blue = mkPlayer({ slot: 1, team: 1, x: 500, y: 199 });
+  const world = mkWorld([red, blue]);
+  const events: GameEvent[] = [];
+
+  // Halfway capture
+  updatePillar(world, PILLAR_CAPTURE_TIME / 2, events);
+  expect(world.pillar.capturingTeam).toBe(0);
+  expect(world.pillar.progress).toBeCloseTo(0.5);
+  expect(world.pillar.owner).toBeNull();
+
+  // Enemy steps into center pillar zone -> contested, progress freezes
+  blue.x = 325;
+  updatePillar(world, 5, events);
+  expect(world.pillar.contested).toBe(true);
+  expect(world.pillar.progress).toBeCloseTo(0.5);
+
+  // Enemy knocked out of zone -> capture completes after remaining half
+  blue.x = 500;
+  updatePillar(world, PILLAR_CAPTURE_TIME / 2 + 0.1, events);
+  expect(world.pillar.owner).toBe(0);
+  expect(world.score).toEqual([1, 0]);
+  expect(events).toContainEqual({ k: 'pillarCaptured', team: 0 });
+
+  // Holding the captured pillar generates extra points every PILLAR_HOLD_SCORE_TIME seconds
+  updatePillar(world, PILLAR_HOLD_SCORE_TIME + 0.1, events);
+  expect(world.score).toEqual([2, 0]);
 });

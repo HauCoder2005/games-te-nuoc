@@ -3,7 +3,7 @@ import {
   SPAWN_CLEARANCE, SPAWN_PROTECT, SPAWN_TRIES, START_COUNTDOWN, TILE,
 } from '../config';
 import { stepBalloons, tryThrow } from './balloons';
-import { endMatch, onFall, updateClock } from './match';
+import { endMatch, onFall, updateClock, updatePillar } from './match';
 import { applyMoveInput, integrate, resolveCovers, resolveOverlaps, startDash } from './movement';
 import { activeCovers, homeZone, isOnRaft } from './raft';
 import { nextRng } from './rng';
@@ -31,6 +31,7 @@ export function createMatch(seed: number, roster: RosterEntry[], settings: Match
     tick: 0, time: 0, rng: seed >>> 0, phase: 'countdown', phaseTimer: START_COUNTDOWN,
     timeLeft: MATCH_TIME, settings, players: [], balloons: [], nextBalloonId: 1,
     raft: { w: RAFT_W, h: RAFT_H, warn: false, warnTimer: 0 },
+    pillar: { owner: null, capturingTeam: null, progress: 0, contested: false, holdTimer: 0 },
     score: [0, 0], lastMinuteDone: false, goldenTimer: 0, winner: null,
     chainCd: {},
   };
@@ -147,6 +148,7 @@ export function step(w: World, inputs: Map<number, InputFrame>, dt: number): Gam
   for (const p of w.players) {
     if (p.status !== 'falling' && p.status !== 'respawning' && !isOnRaft(p.x, p.y, w.raft)) onFall(w, p, events);
   }
+  updatePillar(w, dt, events);
   if (w.phase === 'playing' || w.phase === 'golden') updateClock(w, dt, events);
   if (w.phase === 'playing' || w.phase === 'golden') {
     const red = w.players.some((p) => p.team === 0);
