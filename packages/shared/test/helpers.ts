@@ -1,4 +1,4 @@
-import { AMMO_MAX, MATCH_TIME, RAFT_H, RAFT_W } from '../src/config';
+import { AMMO_MAX, MATCH_TIME, RAFT_H, RAFT_W, TOTAL_ROUNDS } from '../src/config';
 import type { InputFrame, PlayerState, RaftState, World } from '../src/sim/types';
 
 export const R0: RaftState = { w: RAFT_W, h: RAFT_H, warn: false, warnTimer: 0 };
@@ -24,7 +24,7 @@ export function mkWorld(players: PlayerState[] = []): World {
     tick: 0, time: 0, rng: 1, phase: 'playing', phaseTimer: 0, timeLeft: MATCH_TIME,
     settings: { teamSize: 5, scoreToWin: 10 }, players, balloons: [], nextBalloonId: 1,
     raft: { ...R0 },
-    pillar: { owner: null, capturingTeam: null, progress: 0, contested: false, holdTimer: 0 },
+    pillar: { owner: null, capturingTeam: null, progress: 0, contested: false, holdTimer: 0, round: 1, maxRounds: TOTAL_ROUNDS },
     score: [0, 0], lastMinuteDone: false, goldenTimer: 0, winner: null,
     chainCd: {},
   };

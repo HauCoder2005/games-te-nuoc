@@ -25,6 +25,7 @@ export interface NetState {
     phase: string; timeLeft: number;
     pillarOwner: number; pillarTeam: number; pillarProgress: number;
     pillarContested: boolean; pillarHold: number;
+    pillarRound: number; pillarMaxRounds: number;
   };
 }
 export type GameRoom = Room<unknown, NetState>;

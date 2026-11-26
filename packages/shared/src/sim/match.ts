@@ -74,6 +74,14 @@ export function updatePillar(w: World, dt: number, events: GameEvent[]): void {
             pillar.holdTimer = 0;
             events.push({ k: 'pillarCaptured', team: activeTeam });
             awardTeamScore(w, activeTeam, events);
+            if ((w.phase as string) !== 'matchEnd') {
+              if (pillar.round < pillar.maxRounds) {
+                pillar.round++;
+              } else {
+                const winner: Team = w.score[0] === w.score[1] ? activeTeam : w.score[0] > w.score[1] ? 0 : 1;
+                endMatch(w, winner, events);
+              }
+            }
             return;
           }
         }
@@ -142,6 +150,15 @@ export function updateClock(w: World, dt: number, events: GameEvent[]): void {
   }
   if (w.phase === 'playing') {
     w.timeLeft = Math.max(0, w.timeLeft - dt);
+    const elapsed = (w.timeLeft > 0 ? 300 - w.timeLeft : 300);
+    const timeRound = Math.min(w.pillar.maxRounds, Math.floor(elapsed / (300 / w.pillar.maxRounds)) + 1);
+    if (timeRound > w.pillar.round) {
+      w.pillar.round = timeRound;
+      w.pillar.owner = null;
+      w.pillar.capturingTeam = null;
+      w.pillar.progress = 0;
+      w.pillar.holdTimer = 0;
+    }
     if (!w.lastMinuteDone && w.timeLeft <= LAST_MINUTE_AT) {
       w.lastMinuteDone = true;
       events.push({ k: 'lastMinute' });

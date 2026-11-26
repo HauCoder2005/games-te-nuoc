@@ -4,7 +4,7 @@ import {
   addPlayer, botInput, botName, createBotMemory, createMatch, DT, ERROR_TEXT, MATCH_TIME,
   MAX_PLAYERS, MSG, normalizeName, PROTOCOL_VERSION, RAFT_H, RAFT_W, RNG_DIVISOR,
   SCORE_TO_WIN, setBot, step, validateInput, removePlayer, RECONNECT_GRACE, MAX_ROOMS_PER_IP_PER_MIN,
-  TICK_METRICS_EVERY,
+  TICK_METRICS_EVERY, TOTAL_ROUNDS,
 } from '@te-nuoc/shared';
 import type { ErrorCode, InputFrame, World } from '@te-nuoc/shared';
 import { GameState, LobbyPlayer, LobbyState, RoomState } from './schema.js';
@@ -77,6 +77,7 @@ export class MatchRoom extends Room<{ state: RoomState }> {
       raftW: RAFT_W, raftH: RAFT_H, warn: false, red: 0, blue: 0,
       phase: 'countdown', timeLeft: MATCH_TIME,
       pillarOwner: -1, pillarTeam: -1, pillarProgress: 0, pillarContested: false, pillarHold: 0,
+      pillarRound: 1, pillarMaxRounds: TOTAL_ROUNDS,
     });
   }
 

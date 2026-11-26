@@ -61,4 +61,6 @@ export function syncState(world: World, target: GameState, names: ReadonlyMap<nu
   target.pillarProgress = world.pillar.progress;
   target.pillarContested = world.pillar.contested;
   target.pillarHold = world.pillar.holdTimer;
+  target.pillarRound = world.pillar.round;
+  target.pillarMaxRounds = world.pillar.maxRounds;
 }

@@ -108,6 +108,7 @@ it('center pillar takes long to capture, stalls when contested, and scores over 
   blue.x = 500;
   updatePillar(world, PILLAR_CAPTURE_TIME / 2 + 0.1, events);
   expect(world.pillar.owner).toBe(0);
+  expect(world.pillar.round).toBe(2);
   expect(world.score).toEqual([1, 0]);
   expect(events).toContainEqual({ k: 'pillarCaptured', team: 0 });
 

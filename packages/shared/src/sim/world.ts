@@ -1,6 +1,6 @@
 import {
   AMMO_MAX, AMMO_REGEN, MATCH_TIME, RAFT_H, RAFT_W, RESPAWN_TIME,
-  SPAWN_CLEARANCE, SPAWN_PROTECT, SPAWN_TRIES, START_COUNTDOWN, TILE,
+  SPAWN_CLEARANCE, SPAWN_PROTECT, SPAWN_TRIES, START_COUNTDOWN, TILE, TOTAL_ROUNDS,
 } from '../config';
 import { stepBalloons, tryThrow } from './balloons';
 import { endMatch, onFall, updateClock, updatePillar } from './match';
@@ -31,7 +31,7 @@ export function createMatch(seed: number, roster: RosterEntry[], settings: Match
     tick: 0, time: 0, rng: seed >>> 0, phase: 'countdown', phaseTimer: START_COUNTDOWN,
     timeLeft: MATCH_TIME, settings, players: [], balloons: [], nextBalloonId: 1,
     raft: { w: RAFT_W, h: RAFT_H, warn: false, warnTimer: 0 },
-    pillar: { owner: null, capturingTeam: null, progress: 0, contested: false, holdTimer: 0 },
+    pillar: { owner: null, capturingTeam: null, progress: 0, contested: false, holdTimer: 0, round: 1, maxRounds: TOTAL_ROUNDS },
     score: [0, 0], lastMinuteDone: false, goldenTimer: 0, winner: null,
     chainCd: {},
   };

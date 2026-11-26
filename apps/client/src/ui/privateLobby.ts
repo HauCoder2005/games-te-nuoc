@@ -1,4 +1,4 @@
-import { createMatch, DT, INTERP_DELAY_MS, MSG, VIEW_H, VIEW_W } from '@te-nuoc/shared';
+import { createMatch, DT, INTERP_DELAY_MS, MSG, TOTAL_ROUNDS, VIEW_H, VIEW_W } from '@te-nuoc/shared';
 import type { GameEvent, InputFrame, RosterEntry, Team, World } from '@te-nuoc/shared';
 import type { GameRoom } from '../net/colyseus';
 import { serverErrorMessage } from '../net/colyseus';
@@ -56,6 +56,8 @@ function worldFromRoom(room: GameRoom, current: World | null): World | null {
     progress: game.pillarProgress ?? 0,
     contested: Boolean(game.pillarContested),
     holdTimer: game.pillarHold ?? 0,
+    round: game.pillarRound || 1,
+    maxRounds: game.pillarMaxRounds || TOTAL_ROUNDS,
   };
   world.score = [game.red, game.blue];
   world.phase = game.phase as World['phase'];

@@ -19,6 +19,8 @@ export interface PillarState {
   progress: number;
   contested: boolean;
   holdTimer: number;
+  round: number;
+  maxRounds: number;
 }
 export interface World {
   tick: number; time: number; rng: number; phase: Phase; phaseTimer: number; timeLeft: number;

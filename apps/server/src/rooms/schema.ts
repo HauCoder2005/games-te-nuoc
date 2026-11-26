@@ -33,6 +33,7 @@ export const GameState = schema({
   phase: t.string(), timeLeft: t.float32(),
   pillarOwner: t.int8(), pillarTeam: t.int8(), pillarProgress: t.float32(),
   pillarContested: t.boolean(), pillarHold: t.float32(),
+  pillarRound: t.uint8(), pillarMaxRounds: t.uint8(),
 }, 'GameState');
 export type GameState = SchemaType<typeof GameState>;
 

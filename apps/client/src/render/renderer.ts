@@ -64,18 +64,18 @@ function drawPillarZone(ctx: CanvasRenderingContext2D, view: RenderView): void {
   const cx = RAFT_CENTER.x;
   const cy = RAFT_CENTER.y;
   const pillar = view.pillar;
-  const ownerColor = pillar.owner === 0 ? TEAM_COLORS[0] : pillar.owner === 1 ? TEAM_COLORS[1] : '#FFD166';
-  const captureColor = pillar.capturingTeam === 0 ? TEAM_COLORS[0] : pillar.capturingTeam === 1 ? TEAM_COLORS[1] : ownerColor;
+  // Uncaptured = white (#FFFFFF), captured = blue/green or team color (#25D366 / #3B8BF0)
+  const ownerColor = pillar.owner !== null ? '#2ECC71' : '#FFFFFF';
+  const captureColor = pillar.capturingTeam === 0 ? TEAM_COLORS[0] : pillar.capturingTeam === 1 ? '#3B8BF0' : ownerColor;
 
   ctx.save();
-  // Capture zone fill
-  ctx.fillStyle = pillar.owner === 0 ? 'rgba(229, 59, 59, 0.22)'
-    : pillar.owner === 1 ? 'rgba(59, 139, 240, 0.22)' : 'rgba(255, 209, 102, 0.16)';
+  ctx.fillStyle = pillar.owner !== null
+    ? 'rgba(46, 204, 113, 0.22)'
+    : 'rgba(255, 255, 255, 0.16)';
   ctx.beginPath();
   ctx.arc(cx, cy, PILLAR_RADIUS, 0, Math.PI * 2);
   ctx.fill();
 
-  // Outer dashed boundary ring
   ctx.strokeStyle = pillar.contested ? '#FFE066' : ownerColor;
   ctx.lineWidth = 2;
   ctx.setLineDash([4, 3]);
@@ -84,7 +84,6 @@ function drawPillarZone(ctx: CanvasRenderingContext2D, view: RenderView): void {
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // Capture progress arc
   if (pillar.progress > 0) {
     ctx.strokeStyle = captureColor;
     ctx.lineWidth = 3.5;
@@ -99,40 +98,73 @@ function drawPillarTower(ctx: CanvasRenderingContext2D, view: RenderView): void 
   const cx = RAFT_CENTER.x;
   const cy = RAFT_CENTER.y;
   const pillar = view.pillar;
-  const activeColor = pillar.owner === 0 ? TEAM_COLORS[0] : pillar.owner === 1 ? TEAM_COLORS[1]
-    : pillar.capturingTeam !== null ? TEAM_COLORS[pillar.capturingTeam] : '#FFD166';
+
+  // Uncaptured flag is crisp white; once captured it turns vibrant blue-green (or team blue/green)
+  const capturedPalette = {
+    outline: '#16302B',
+    main: '#25C26E',
+    highlight: '#7CF29C',
+    shade: '#158F4E',
+  };
+  const whitePalette = {
+    outline: '#2B1E2F',
+    main: '#F7FAFC',
+    highlight: '#FFFFFF',
+    shade: '#CBD5E1',
+  };
+  const pal = pillar.owner !== null ? capturedPalette : whitePalette;
 
   ctx.save();
-  // Stone pedestal base
-  ctx.fillStyle = '#2B1E2F';
-  ctx.fillRect(cx - 10, cy - 6, 20, 10);
-  ctx.fillStyle = '#7C7287';
-  ctx.fillRect(cx - 9, cy - 5, 18, 8);
-  ctx.fillStyle = '#A399B2';
-  ctx.fillRect(cx - 8, cy - 5, 16, 3);
+  // Terracotta / stone mound pedestal (matching uploaded pixel flag base)
+  ctx.fillStyle = '#7C321D';
+  ctx.fillRect(cx - 10, cy - 3, 20, 6);
+  ctx.fillRect(cx - 8, cy - 6, 16, 3);
+  ctx.fillRect(cx - 6, cy - 8, 12, 2);
+  ctx.fillStyle = '#D97B43';
+  ctx.fillRect(cx - 8, cy - 2, 16, 4);
+  ctx.fillRect(cx - 6, cy - 5, 12, 3);
+  ctx.fillRect(cx - 5, cy - 7, 10, 2);
+  ctx.fillStyle = '#9E472A';
+  ctx.fillRect(cx - 4, cy - 5, 2, 2);
+  ctx.fillRect(cx + 2, cy - 3, 2, 2);
 
-  // Pillar column
-  ctx.fillStyle = '#2B1E2F';
-  ctx.fillRect(cx - 6, cy - 28, 12, 23);
-  ctx.fillStyle = '#E4DCF0';
-  ctx.fillRect(cx - 5, cy - 27, 10, 21);
+  // Dark flagpole mast
+  ctx.fillStyle = '#2B2B33';
+  ctx.fillRect(cx - 2, cy - 32, 3, 24);
+  ctx.fillStyle = '#454552';
+  ctx.fillRect(cx - 1, cy - 32, 1, 24);
 
-  // Team energy fill rising up the column
-  const fillRatio = pillar.owner !== null ? 1 : pillar.progress;
-  if (fillRatio > 0) {
-    const h = Math.round(19 * fillRatio);
-    ctx.fillStyle = activeColor;
-    ctx.fillRect(cx - 4, cy - 7 - h, 8, h);
+  // Waving pixel-art flag cloth (2-frame wave animation)
+  const wave = Math.floor(view.time * 4) % 2;
+  const fy = cy - 33;
+  const fx = cx - 2;
+
+  // Flag dark border
+  ctx.fillStyle = pal.outline;
+  ctx.fillRect(fx, fy - 1, 10, 15);
+  ctx.fillRect(fx + 10, fy + 1 + wave, 9, 14);
+
+  // Flag main body
+  ctx.fillStyle = pal.main;
+  ctx.fillRect(fx + 1, fy, 9, 13);
+  ctx.fillRect(fx + 10, fy + 2 + wave, 8, 12);
+
+  // Flag top/wave light highlight (matching the uploaded pixel flag)
+  ctx.fillStyle = pal.highlight;
+  ctx.fillRect(fx + 2, fy + 1, 6, 3);
+  ctx.fillRect(fx + 11, fy + 4 + wave, 5, 3);
+
+  // Flag bottom fold shadow
+  ctx.fillStyle = pal.shade;
+  ctx.fillRect(fx + 1, fy + 3, 2, 9);
+  ctx.fillRect(fx + 10, fy + 11 + wave, 7, 3);
+
+  // If currently being captured, show rising fill bar on the pole
+  if (pillar.progress > 0 && pillar.owner === null) {
+    const fillH = Math.round(13 * pillar.progress);
+    ctx.fillStyle = '#25C26E';
+    ctx.fillRect(fx + 1, fy + 13 - fillH, 9, fillH);
   }
-
-  // Beacon crystal on top
-  const pulse = Math.sin(view.time * 6) > 0 ? 1 : 0;
-  ctx.fillStyle = '#2B1E2F';
-  ctx.fillRect(cx - 5 - pulse, cy - 35 - pulse, 10 + pulse * 2, 8 + pulse * 2);
-  ctx.fillStyle = activeColor;
-  ctx.fillRect(cx - 4, cy - 34, 8, 6);
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(cx - 2, cy - 33, 3, 2);
   ctx.restore();
 }
 

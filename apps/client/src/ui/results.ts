@@ -51,7 +51,7 @@ export function bannerFor(event: GameEvent, _score: [number, number], scoreToWin
       return `ĐIỂM QUYẾT ĐỊNH — ĐỘI ${event.teams[0] === 0 ? 'ĐỎ' : 'XANH'}!`;
     case 'golden': return 'BÀN THẮNG VÀNG!';
     case 'lastMinute': return 'PHÚT CUỐI — BÈ CO LẠI!';
-    case 'pillarCaptured': return `ĐỘI ${event.team === 0 ? 'ĐỎ' : 'XANH'} ĐÃ CHIẾM CỘT GIỮA!`;
+    case 'pillarCaptured': return `ĐỘI ${event.team === 0 ? 'ĐỎ' : 'XANH'} ĐÃ CHIẾM CỜ!`;
     case 'streak':
       if (event.n === 3) return `${names.get(event.slot) ?? `#${event.slot}`} đang nóng tay! 🔥`;
       if (event.n === 5) return `${names.get(event.slot) ?? `#${event.slot}`} KHÔNG THỂ CẢN!`;

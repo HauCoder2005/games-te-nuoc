@@ -52,16 +52,17 @@ export function updateHud(root: HTMLElement, world: World, names: ReadonlyMap<nu
   const pillarText = document.createElement('div');
   pillarText.className = 'pillar-text';
   const pct = Math.round(world.pillar.progress * 100);
+  const roundBadge = `HIỆP ${world.pillar.round}/${world.pillar.maxRounds}`;
   if (world.pillar.contested) {
-    pillarText.textContent = '⚔️ CỘT GIỮA: ĐANG TRANH CHẤP!';
+    pillarText.textContent = `${roundBadge} · ⚔️ CỜ GIỮA: ĐANG TRANH CHẤP!`;
   } else if (world.pillar.capturingTeam !== null && world.pillar.progress > 0) {
     const teamName = world.pillar.capturingTeam === 0 ? 'ĐỘI ĐỎ' : 'ĐỘI XANH';
-    pillarText.textContent = `🚩 ${teamName} ĐANG CHIẾM CỘT (${pct}%)`;
+    pillarText.textContent = `${roundBadge} · 🏳️ ${teamName} ĐANG CHIẾM CỜ (${pct}%)`;
   } else if (world.pillar.owner !== null) {
     const teamName = world.pillar.owner === 0 ? 'ĐỘI ĐỎ' : 'ĐỘI XANH';
-    pillarText.textContent = `🏛️ CỘT GIỮA: ${teamName} ĐANG GIỮ (+1 điểm mỗi 7s)`;
+    pillarText.textContent = `${roundBadge} · 🚩 CỜ ĐÃ CHIẾM (${teamName} · +1 điểm mỗi 8s)`;
   } else {
-    pillarText.textContent = '🏛️ CỘT GIỮA: CHƯA AI CHIẾM (Đứng vào vòng tròn giữa bè)';
+    pillarText.textContent = `${roundBadge} · 🏳️ CỜ TRẮNG: CHƯA AI CHIẾM`;
   }
   const pillarBar = document.createElement('div');
   pillarBar.className = 'pillar-bar';
