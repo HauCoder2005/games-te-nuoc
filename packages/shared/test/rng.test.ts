@@ -12,4 +12,10 @@ describe('seeded RNG', () => {
     expect(v).toBeLessThan(1);
     expect(s).not.toBe(1);
   });
+  it('nextRng continues the same sequence as mulberry32', () => {
+    const random = mulberry32(42);
+    const [first, state] = nextRng(42);
+    const [second] = nextRng(state);
+    expect([first, second]).toEqual([random(), random()]);
+  });
 });

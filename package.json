@@ -2,15 +2,23 @@
   "name": "te-nuoc",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/*", "apps/*"],
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "test": "vitest run",
+    "lint": "eslint .",
+    "typecheck": "tsc -p packages/shared/tsconfig.json --noEmit",
     "build": "npm run build --workspaces --if-present",
     "dev:client": "npm run dev -w apps/client",
     "dev:server": "npm run dev -w apps/server"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.15.0",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.74.0",
     "vitest": "^3.2.4"
   }
 }
