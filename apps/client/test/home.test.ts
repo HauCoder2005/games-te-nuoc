@@ -9,6 +9,7 @@ describe('home screen boxes and character selection', () => {
     location.hash = '#/r/khvt';
     showHome(root);
 
+    expect(root.querySelector('h1')?.textContent).toBe('Aqua Blast');
     const nameBox = root.querySelector('.home-box-name');
     const roomBox = root.querySelector('.home-box-room');
     expect(nameBox).not.toBeNull();

@@ -18,7 +18,7 @@ export function showHome(root: HTMLElement): void {
   const panel = document.createElement('main');
   panel.className = 'home';
   const title = document.createElement('h1');
-  title.textContent = 'TÉ NƯỚC!';
+  title.textContent = 'Aqua Blast';
   panel.append(title);
   if (isTouchOnly(navigator, (query) => window.matchMedia(query).matches)) {
     const notice = document.createElement('p');
