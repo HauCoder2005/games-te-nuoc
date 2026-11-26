@@ -14,7 +14,8 @@ export const LobbyState = schema({
 export type LobbyState = SchemaType<typeof LobbyState>;
 
 export const GamePlayer = schema({
-  slot: t.uint8(), x: t.float32(), y: t.float32(), wet: t.float32(),
+  slot: t.uint8(), team: t.uint8(), variant: t.uint8(), isBot: t.boolean(), name: t.string(),
+  x: t.float32(), y: t.float32(), wet: t.float32(),
   status: t.string(), timer: t.float32(), ammo: t.uint8(), facing: t.int8(),
   aimX: t.float32(), aimY: t.float32(), ackSeq: t.uint32(), ko: t.uint8(),
 }, 'GamePlayer');

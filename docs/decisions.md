@@ -9,3 +9,4 @@ Mỗi dòng: `YYYY-MM-DD · Task N · quyết định · lý do`.
 2026-11-26 · Task 10 · Build server bằng esbuild thành Node ESM, gộp mã shared; chạy Vitest bằng thread pool · Shared dùng module resolution bundler, còn khung Colyseus sinh sẵn dùng NodeNext và gửi tín hiệu process.send gây xung đột với fork của Vitest.
 2026-11-26 · Task 11 · Tạo mã phòng bằng `crypto.randomInt` và giữ tập mã đang cấp phát trong tiến trình · Mã riêng cần khó đoán và tránh hai lời gọi đồng thời nhận cùng mã trước khi Presence kịp lưu.
 2026-11-26 · Task 12 · `buildRoster` trả thêm tên trên mỗi `RosterEntry` · Kiểu `RosterEntry` trong plan không có tên dù bot cần tên để hiện ở sảnh và trong trận.
+2026-11-26 · Task 13 · Thêm tên, đội, biến thể và cờ bot vào `GamePlayer` Schema · Client cần các thuộc tính này để vẽ đồng phục, tên đồng đội và bot sau khi nhận trạng thái trận.

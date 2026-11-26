@@ -65,6 +65,7 @@ export const PUBLIC_FULL_WAIT = 10;
 export const RECONNECT_GRACE = 20;
 export const MAX_ROOMS_PER_IP_PER_MIN = 5;
 export const MAX_MSGS_PER_SEC = 60;
+export const MSG_WINDOW_MS = 1000;
 export const INTERP_DELAY_MS = 120;
 export const PROTOCOL_VERSION = 3;
 export const TEAM_COLORS = ['#E53B3B', '#3B8BF0'] as const;
