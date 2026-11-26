@@ -1,0 +1,606 @@
+{
+  "version": 1,
+  "pixelScaleNote": "All sizes in logical pixels (world = 640x360).",
+  "images": {
+    "bg": {
+      "file": "bg.png",
+      "w": 640,
+      "h": 360,
+      "note": "Static backdrop: sky, rooftop, deck, empty pool (water rect x24-616, y60-338). Raft drawn on top."
+    },
+    "raft_edge": {
+      "file": "raft_edge.png",
+      "w": 16,
+      "h": 8,
+      "note": "Draw under each bottom-row tile (thickness + barrel). Barrel only every 7th tile is fine: draw rows 0-3 always, full image on every 7th."
+    },
+    "raft_crack": {
+      "file": "raft_crack.png",
+      "w": 16,
+      "h": 16,
+      "note": "Overlay on tiles of the ring that will sink while raft.warn; also blink a red tint (#FF4B3A, alpha 0.32) at 4Hz."
+    },
+    "cover": {
+      "file": "cover.png",
+      "w": 18,
+      "h": 24,
+      "anchor": [
+        9,
+        23
+      ],
+      "note": "Anchor = bottom-centre of the 16x16 footprint (cover centre y + 8)."
+    },
+    "flag_red": {
+      "file": "flag_red.png",
+      "w": 14,
+      "h": 26,
+      "anchor": [
+        1,
+        25
+      ],
+      "note": "Mirror horizontally for the blue (right) side."
+    },
+    "flag_blue": {
+      "file": "flag_blue.png",
+      "w": 14,
+      "h": 26,
+      "anchor": [
+        1,
+        25
+      ],
+      "note": "Mirror horizontally for the blue (right) side."
+    },
+    "balloon": {
+      "file": "balloon.png",
+      "w": 6,
+      "h": 7,
+      "anchor": [
+        3,
+        6
+      ],
+      "tint": "team colour (multiply)",
+      "note": "Draw at (x, y - balloonHeight(b)); draw a 6x2 shadow at (x, y)."
+    },
+    "balloon_small": {
+      "file": "balloon_small.png",
+      "w": 4,
+      "h": 5,
+      "anchor": [
+        2,
+        4
+      ],
+      "tint": "team colour",
+      "note": "Ammo pips above own head."
+    }
+  },
+  "sheets": {
+    "player_red_v0": {
+      "file": "player_red_v0.png",
+      "frameW": 16,
+      "frameH": 24,
+      "anchor": [
+        8,
+        23
+      ],
+      "anims": {
+        "idle": {
+          "start": 0,
+          "count": 2,
+          "fps": 2
+        },
+        "walk": {
+          "start": 2,
+          "count": 4,
+          "fps": 8
+        },
+        "throw": {
+          "start": 6,
+          "count": 3,
+          "fps": 18,
+          "loop": false
+        },
+        "dash": {
+          "start": 9,
+          "count": 1,
+          "fps": 1
+        },
+        "hit": {
+          "start": 10,
+          "count": 1,
+          "fps": 1
+        },
+        "win": {
+          "start": 11,
+          "count": 2,
+          "fps": 4
+        }
+      },
+      "flipForLeft": true
+    },
+    "player_red_v1": {
+      "file": "player_red_v1.png",
+      "frameW": 16,
+      "frameH": 24,
+      "anchor": [
+        8,
+        23
+      ],
+      "anims": {
+        "idle": {
+          "start": 0,
+          "count": 2,
+          "fps": 2
+        },
+        "walk": {
+          "start": 2,
+          "count": 4,
+          "fps": 8
+        },
+        "throw": {
+          "start": 6,
+          "count": 3,
+          "fps": 18,
+          "loop": false
+        },
+        "dash": {
+          "start": 9,
+          "count": 1,
+          "fps": 1
+        },
+        "hit": {
+          "start": 10,
+          "count": 1,
+          "fps": 1
+        },
+        "win": {
+          "start": 11,
+          "count": 2,
+          "fps": 4
+        }
+      },
+      "flipForLeft": true
+    },
+    "player_red_v2": {
+      "file": "player_red_v2.png",
+      "frameW": 16,
+      "frameH": 24,
+      "anchor": [
+        8,
+        23
+      ],
+      "anims": {
+        "idle": {
+          "start": 0,
+          "count": 2,
+          "fps": 2
+        },
+        "walk": {
+          "start": 2,
+          "count": 4,
+          "fps": 8
+        },
+        "throw": {
+          "start": 6,
+          "count": 3,
+          "fps": 18,
+          "loop": false
+        },
+        "dash": {
+          "start": 9,
+          "count": 1,
+          "fps": 1
+        },
+        "hit": {
+          "start": 10,
+          "count": 1,
+          "fps": 1
+        },
+        "win": {
+          "start": 11,
+          "count": 2,
+          "fps": 4
+        }
+      },
+      "flipForLeft": true
+    },
+    "player_red_v3": {
+      "file": "player_red_v3.png",
+      "frameW": 16,
+      "frameH": 24,
+      "anchor": [
+        8,
+        23
+      ],
+      "anims": {
+        "idle": {
+          "start": 0,
+          "count": 2,
+          "fps": 2
+        },
+        "walk": {
+          "start": 2,
+          "count": 4,
+          "fps": 8
+        },
+        "throw": {
+          "start": 6,
+          "count": 3,
+          "fps": 18,
+          "loop": false
+        },
+        "dash": {
+          "start": 9,
+          "count": 1,
+          "fps": 1
+        },
+        "hit": {
+          "start": 10,
+          "count": 1,
+          "fps": 1
+        },
+        "win": {
+          "start": 11,
+          "count": 2,
+          "fps": 4
+        }
+      },
+      "flipForLeft": true
+    },
+    "player_red_v4": {
+      "file": "player_red_v4.png",
+      "frameW": 16,
+      "frameH": 24,
+      "anchor": [
+        8,
+        23
+      ],
+      "anims": {
+        "idle": {
+          "start": 0,
+          "count": 2,
+          "fps": 2
+        },
+        "walk": {
+          "start": 2,
+          "count": 4,
+          "fps": 8
+        },
+        "throw": {
+          "start": 6,
+          "count": 3,
+          "fps": 18,
+          "loop": false
+        },
+        "dash": {
+          "start": 9,
+          "count": 1,
+          "fps": 1
+        },
+        "hit": {
+          "start": 10,
+          "count": 1,
+          "fps": 1
+        },
+        "win": {
+          "start": 11,
+          "count": 2,
+          "fps": 4
+        }
+      },
+      "flipForLeft": true
+    },
+    "player_blue_v0": {
+      "file": "player_blue_v0.png",
+      "frameW": 16,
+      "frameH": 24,
+      "anchor": [
+        8,
+        23
+      ],
+      "anims": {
+        "idle": {
+          "start": 0,
+          "count": 2,
+          "fps": 2
+        },
+        "walk": {
+          "start": 2,
+          "count": 4,
+          "fps": 8
+        },
+        "throw": {
+          "start": 6,
+          "count": 3,
+          "fps": 18,
+          "loop": false
+        },
+        "dash": {
+          "start": 9,
+          "count": 1,
+          "fps": 1
+        },
+        "hit": {
+          "start": 10,
+          "count": 1,
+          "fps": 1
+        },
+        "win": {
+          "start": 11,
+          "count": 2,
+          "fps": 4
+        }
+      },
+      "flipForLeft": true
+    },
+    "player_blue_v1": {
+      "file": "player_blue_v1.png",
+      "frameW": 16,
+      "frameH": 24,
+      "anchor": [
+        8,
+        23
+      ],
+      "anims": {
+        "idle": {
+          "start": 0,
+          "count": 2,
+          "fps": 2
+        },
+        "walk": {
+          "start": 2,
+          "count": 4,
+          "fps": 8
+        },
+        "throw": {
+          "start": 6,
+          "count": 3,
+          "fps": 18,
+          "loop": false
+        },
+        "dash": {
+          "start": 9,
+          "count": 1,
+          "fps": 1
+        },
+        "hit": {
+          "start": 10,
+          "count": 1,
+          "fps": 1
+        },
+        "win": {
+          "start": 11,
+          "count": 2,
+          "fps": 4
+        }
+      },
+      "flipForLeft": true
+    },
+    "player_blue_v2": {
+      "file": "player_blue_v2.png",
+      "frameW": 16,
+      "frameH": 24,
+      "anchor": [
+        8,
+        23
+      ],
+      "anims": {
+        "idle": {
+          "start": 0,
+          "count": 2,
+          "fps": 2
+        },
+        "walk": {
+          "start": 2,
+          "count": 4,
+          "fps": 8
+        },
+        "throw": {
+          "start": 6,
+          "count": 3,
+          "fps": 18,
+          "loop": false
+        },
+        "dash": {
+          "start": 9,
+          "count": 1,
+          "fps": 1
+        },
+        "hit": {
+          "start": 10,
+          "count": 1,
+          "fps": 1
+        },
+        "win": {
+          "start": 11,
+          "count": 2,
+          "fps": 4
+        }
+      },
+      "flipForLeft": true
+    },
+    "player_blue_v3": {
+      "file": "player_blue_v3.png",
+      "frameW": 16,
+      "frameH": 24,
+      "anchor": [
+        8,
+        23
+      ],
+      "anims": {
+        "idle": {
+          "start": 0,
+          "count": 2,
+          "fps": 2
+        },
+        "walk": {
+          "start": 2,
+          "count": 4,
+          "fps": 8
+        },
+        "throw": {
+          "start": 6,
+          "count": 3,
+          "fps": 18,
+          "loop": false
+        },
+        "dash": {
+          "start": 9,
+          "count": 1,
+          "fps": 1
+        },
+        "hit": {
+          "start": 10,
+          "count": 1,
+          "fps": 1
+        },
+        "win": {
+          "start": 11,
+          "count": 2,
+          "fps": 4
+        }
+      },
+      "flipForLeft": true
+    },
+    "player_blue_v4": {
+      "file": "player_blue_v4.png",
+      "frameW": 16,
+      "frameH": 24,
+      "anchor": [
+        8,
+        23
+      ],
+      "anims": {
+        "idle": {
+          "start": 0,
+          "count": 2,
+          "fps": 2
+        },
+        "walk": {
+          "start": 2,
+          "count": 4,
+          "fps": 8
+        },
+        "throw": {
+          "start": 6,
+          "count": 3,
+          "fps": 18,
+          "loop": false
+        },
+        "dash": {
+          "start": 9,
+          "count": 1,
+          "fps": 1
+        },
+        "hit": {
+          "start": 10,
+          "count": 1,
+          "fps": 1
+        },
+        "win": {
+          "start": 11,
+          "count": 2,
+          "fps": 4
+        }
+      },
+      "flipForLeft": true
+    },
+    "water_ripple": {
+      "file": "water_ripple.png",
+      "frameW": 32,
+      "frameH": 32,
+      "anchor": [
+        0,
+        0
+      ],
+      "anims": {
+        "loop": {
+          "start": 0,
+          "count": 4,
+          "fps": 3
+        }
+      },
+      "note": "Transparent overlay. Tile over POOL_RECT every 32px, draw over bg, under raft."
+    },
+    "raft_plank": {
+      "file": "raft_plank.png",
+      "frameW": 16,
+      "frameH": 16,
+      "anchor": [
+        0,
+        0
+      ],
+      "variants": 4,
+      "note": "Pick variant = (col*7 + row*3) % 4 for each tile."
+    },
+    "fx_burst": {
+      "file": "fx_burst.png",
+      "frameW": 24,
+      "frameH": 24,
+      "anchor": [
+        12,
+        12
+      ],
+      "anims": {
+        "play": {
+          "start": 0,
+          "count": 6,
+          "fps": 20,
+          "loop": false
+        }
+      },
+      "note": "On 'burst' event. Also sprinkle 4 pixels of the thrower's team colour."
+    },
+    "fx_fall": {
+      "file": "fx_fall.png",
+      "frameW": 24,
+      "frameH": 32,
+      "anchor": [
+        12,
+        28
+      ],
+      "anims": {
+        "play": {
+          "start": 0,
+          "count": 6,
+          "fps": 10,
+          "loop": false
+        }
+      },
+      "note": "On 'fall' event at the fall position (0.6s = FALL_TIME)."
+    },
+    "fx_bubble": {
+      "file": "fx_bubble.png",
+      "frameW": 28,
+      "frameH": 30,
+      "anchor": [
+        14,
+        27
+      ],
+      "anims": {
+        "loop": {
+          "start": 0,
+          "count": 2,
+          "fps": 6
+        }
+      },
+      "note": "Spawn protection bubble around the player (status 'protected'); draw the player at 60% alpha inside."
+    }
+  },
+  "colors": {
+    "team": [
+      "#E53B3B",
+      "#3B8BF0"
+    ],
+    "outline": "#2B1E2F",
+    "water": "#1FA3D1",
+    "foam": "#E9FCFF",
+    "warnTint": "#FF4B3A",
+    "midline": "#FFFFFF",
+    "homeZoneAlpha": 0.16
+  },
+  "font": {
+    "family": "VT323",
+    "package": "@fontsource/vt323",
+    "note": "Supports Vietnamese. Draw HUD/name tags on the full-resolution overlay canvas."
+  }
+}

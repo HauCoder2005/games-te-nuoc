@@ -1,0 +1,16 @@
+{
+  "name": "te-nuoc",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "test": "vitest run",
+    "build": "npm run build --workspaces --if-present",
+    "dev:client": "npm run dev -w apps/client",
+    "dev:server": "npm run dev -w apps/server"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}
