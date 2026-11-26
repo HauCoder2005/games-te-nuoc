@@ -5,3 +5,5 @@ export * from './sim/raft';
 export * from './sim/hit';
 export * from './sim/movement';
 export * from './sim/balloons';
+export * from './sim/match';
+export * from './sim/world';
