@@ -3,7 +3,7 @@ import { randomInt } from 'node:crypto';
 import {
   addPlayer, botInput, botName, createBotMemory, createMatch, DT, ERROR_TEXT, MATCH_TIME,
   MAX_PLAYERS, MSG, normalizeName, PROTOCOL_VERSION, RAFT_H, RAFT_W, RNG_DIVISOR,
-  SCORE_TO_WIN, setBot, step, validateInput, removePlayer,
+  SCORE_TO_WIN, setBot, step, validateInput, removePlayer, RECONNECT_GRACE, MAX_ROOMS_PER_IP_PER_MIN,
 } from '@te-nuoc/shared';
 import type { ErrorCode, InputFrame, World } from '@te-nuoc/shared';
 import { GameState, LobbyPlayer, LobbyState, RoomState } from './schema.js';
@@ -11,6 +11,9 @@ import { generateRoomCode, releaseRoomCode } from './roomCode.js';
 import { LobbyModel, publicStartDecision } from './lobby.js';
 import { MsgLimiter } from './msgLimiter.js';
 import { syncState } from './syncState.js';
+import { RateLimiter } from './rateLimit.js';
+
+export const roomCreationLimit = new RateLimiter(MAX_ROOMS_PER_IP_PER_MIN);
 
 interface JoinOptions { mode: 'public' | 'private'; name: string; v: number }
 
@@ -31,6 +34,7 @@ export class MatchRoom extends Room<{ state: RoomState }> {
   private readonly botMemory = new Map<number, ReturnType<typeof createBotMemory>>();
   private readonly namesBySlot = new Map<number, string>();
   private matchEndLogged = false;
+  private creatorChecked = false;
 
   messages = {
     [MSG.input]: (client: Client, raw: unknown) => this.receiveInput(client, raw),
@@ -96,11 +100,15 @@ export class MatchRoom extends Room<{ state: RoomState }> {
     this.log('room_created');
   }
 
-  onAuth(_client: Client, options: unknown): boolean {
+  onAuth(_client: Client, options: unknown, context: { ip?: string }): boolean {
     if (!isObject(options) || options.v !== PROTOCOL_VERSION) {
       throw new ServerError(400, ERROR_TEXT.version_mismatch);
     }
     if (!normalizeName(options.name)) throw new ServerError(400, ERROR_TEXT.bad_request);
+    if (this.mode === 'private' && !this.creatorChecked) {
+      this.creatorChecked = true;
+      if (!roomCreationLimit.hit(context.ip ?? 'unknown', Date.now())) throw new ServerError(429, ERROR_TEXT.rate_limited);
+    }
     return true;
   }
 
@@ -127,11 +135,34 @@ export class MatchRoom extends Room<{ state: RoomState }> {
     }
   }
 
-  onLeave(client: Client): void {
+  onDrop(client: Client): void {
     const member = this.lobby.members.find((candidate) => candidate.sessionId === client.sessionId);
-    if (member && this.world) {
+    if (!member || !this.world) { this.finalizeLeave(client.sessionId); return; }
+    member.connected = false;
+    const previous = this.previousInputs.get(client.sessionId);
+    this.latestInputs.set(member.slot, {
+      seq: (previous?.seq ?? 0) + 1, mx: 0, my: 0,
+      ax: previous?.ax ?? RAFT_W, ay: previous?.ay ?? RAFT_H,
+      th: previous?.th ?? 0, da: previous?.da ?? 0,
+    });
+    this.syncLobby();
+    void this.allowReconnection(client, RECONNECT_GRACE).then(() => {
+      member.connected = true;
       this.latestInputs.delete(member.slot);
       this.previousInputs.delete(client.sessionId);
+      const player = this.world?.players.find((candidate) => candidate.slot === member.slot);
+      if (player) { player.lastTh = 0; player.lastDa = 0; }
+      this.syncLobby();
+    }).catch(() => this.finalizeLeave(client.sessionId));
+  }
+
+  onLeave(client: Client): void { this.finalizeLeave(client.sessionId); }
+
+  private finalizeLeave(sessionId: string): void {
+    const member = this.lobby.members.find((candidate) => candidate.sessionId === sessionId);
+    if (member && this.world) {
+      this.latestInputs.delete(member.slot);
+      this.previousInputs.delete(sessionId);
       if (this.lobby.settings.botFill) {
         setBot(this.world, member.slot, true);
         this.namesBySlot.delete(member.slot);
@@ -140,8 +171,8 @@ export class MatchRoom extends Room<{ state: RoomState }> {
       } else removePlayer(this.world, member.slot);
       syncState(this.world, this.state.game, this.namesBySlot);
     }
-    this.lobby.leave(client.sessionId);
-    this.limiter.remove(client.sessionId);
+    this.lobby.leave(sessionId);
+    this.limiter.remove(sessionId);
     this.updatePublicCountdown();
     this.syncLobby();
   }

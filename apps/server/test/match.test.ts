@@ -1,13 +1,13 @@
 import { afterAll, beforeAll, beforeEach, expect, it, vi } from 'vitest';
 import { boot, type ColyseusTestServer } from '@colyseus/testing';
 import appConfig from '../src/app.config.js';
-import type { MatchRoom } from '../src/rooms/MatchRoom.js';
+import { roomCreationLimit, type MatchRoom } from '../src/rooms/MatchRoom.js';
 import { MsgLimiter } from '../src/rooms/msgLimiter.js';
 
 let server: ColyseusTestServer<typeof appConfig>;
 beforeAll(async () => { server = await boot(appConfig); });
 afterAll(async () => { await server.shutdown(); });
-beforeEach(async () => { await server.cleanup(); });
+beforeEach(async () => { await server.cleanup(); roomCreationLimit.clear(); });
 
 const options = (name: string) => ({ mode: 'private' as const, name, v: 3 });
 

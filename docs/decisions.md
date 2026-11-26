@@ -11,3 +11,4 @@ Mỗi dòng: `YYYY-MM-DD · Task N · quyết định · lý do`.
 2026-11-26 · Task 12 · `buildRoster` trả thêm tên trên mỗi `RosterEntry` · Kiểu `RosterEntry` trong plan không có tên dù bot cần tên để hiện ở sảnh và trong trận.
 2026-11-26 · Task 13 · Thêm tên, đội, biến thể và cờ bot vào `GamePlayer` Schema · Client cần các thuộc tính này để vẽ đồng phục, tên đồng đội và bot sau khi nhận trạng thái trận.
 2026-11-26 · Task 14 · Dùng nội suy và dự đoán vị trí dự phòng thay cho `@colyseus/sdk` Predictor · SDK Predictor cần trạng thái và thao tác xác nhận riêng, trong khi server đang gửi Schema cùng `ackSeq` theo giao thức đã định; lớp dự phòng khớp ngay với dữ liệu này.
+2026-11-26 · Task 16 · Giới hạn phòng riêng ở `onAuth` của người tạo, lấy `AuthContext.ip`; giữ chỗ khi rớt mạng bằng `onDrop` · Colyseus 0.18 chỉ cung cấp IP lúc xác thực kết nối sau `onCreate`, và phân biệt `onDrop` với `onLeave` tự nguyện.

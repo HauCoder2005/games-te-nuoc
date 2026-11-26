@@ -64,6 +64,7 @@ export const PUBLIC_HALF_READY_WAIT = 20;
 export const PUBLIC_FULL_WAIT = 10;
 export const RECONNECT_GRACE = 20;
 export const MAX_ROOMS_PER_IP_PER_MIN = 5;
+export const RATE_LIMIT_WINDOW_MS = 60_000;
 export const MAX_MSGS_PER_SEC = 60;
 export const MSG_WINDOW_MS = 1000;
 export const INTERP_DELAY_MS = 120;
