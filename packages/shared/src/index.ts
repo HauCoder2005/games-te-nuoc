@@ -7,3 +7,4 @@ export * from './sim/movement';
 export * from './sim/balloons';
 export * from './sim/match';
 export * from './sim/world';
+export * from './sim/bot';
