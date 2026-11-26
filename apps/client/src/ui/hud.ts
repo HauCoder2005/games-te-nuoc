@@ -1,4 +1,5 @@
 import type { GameEvent, PlayerState, Team, World } from '@te-nuoc/shared';
+import { createCharacterAvatar } from './avatar';
 
 export function formatClock(sec: number): string {
   const rounded = Math.max(0, Math.ceil(sec));
@@ -62,7 +63,7 @@ export function updateHud(root: HTMLElement, world: World, names: ReadonlyMap<nu
     chip.className = `chip team-${player.team}`;
     const face = document.createElement('span');
     face.className = 'chip-face';
-    face.style.backgroundImage = `url('/assets/player_${player.team === 0 ? 'red' : 'blue'}_v${player.variant}.png')`;
+    face.append(createCharacterAvatar(player.variant, player.team));
     const name = document.createElement('span');
     name.className = `chip-name team-text-${player.team}`;
     name.textContent = names.get(player.slot) ?? `#${player.slot}`;

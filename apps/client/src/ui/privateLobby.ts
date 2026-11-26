@@ -14,6 +14,7 @@ import { renderMatchmaking } from './matchmaking';
 import { CONNECTION_LOST_TEXT } from './errors';
 import { attachGameMenus } from './escMenu';
 import { bannerFor, showResults } from './results';
+import { createCharacterAvatar } from './avatar';
 
 function button(label: string, action: () => void): HTMLButtonElement {
   const element = document.createElement('button');
@@ -161,7 +162,7 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
         row.className = `lobby-player team-${team}`;
         const face = document.createElement('span');
         face.className = 'lobby-face';
-        face.style.backgroundImage = `url('/assets/player_${team === 0 ? 'red' : 'blue'}_v${member.variant}.png')`;
+        face.append(createCharacterAvatar(member.variant, team));
         const text = document.createElement('span');
         text.className = `player-name team-text-${team}`;
         text.textContent = `${member.sessionId === lobby.hostSessionId ? '♛ ' : ''}${member.name}${member.ready ? ' ✓' : ''}`;

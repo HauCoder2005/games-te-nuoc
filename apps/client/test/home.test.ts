@@ -22,7 +22,7 @@ describe('home screen boxes and character selection', () => {
     expect(roomInput?.value).toBe('KHVT');
   });
 
-  it('allows selecting a character variant with face and hair details', () => {
+  it('allows selecting distinct male/female characters with skin tone and hairstyle details', () => {
     localStorage.removeItem('te-nuoc-variant');
     const root = document.createElement('div');
     showHome(root);
@@ -30,11 +30,17 @@ describe('home screen boxes and character selection', () => {
     const cards = root.querySelectorAll<HTMLButtonElement>('.char-card');
     expect(cards).toHaveLength(CHARACTER_VARIANTS.length);
     expect(cards[0].classList.contains('selected')).toBe(true);
+    expect(root.querySelectorAll('.char-avatar-svg')).toHaveLength(CHARACTER_VARIANTS.length);
+
+    cards[2].click();
+    expect(cards[2].classList.contains('selected')).toBe(true);
+    expect(cards[0].classList.contains('selected')).toBe(false);
+    expect(localStorage.getItem('te-nuoc-variant')).toBe('2');
+    expect(root.querySelector('.char-detail')?.textContent).toContain('Bin (Nam · Da đen)');
 
     cards[3].click();
     expect(cards[3].classList.contains('selected')).toBe(true);
-    expect(cards[0].classList.contains('selected')).toBe(false);
     expect(localStorage.getItem('te-nuoc-variant')).toBe('3');
-    expect(root.querySelector('.char-detail')?.textContent).toBe(CHARACTER_VARIANTS[3].detail);
+    expect(root.querySelector('.char-detail')?.textContent).toContain('Su (Nữ · Da vàng)');
   });
 });

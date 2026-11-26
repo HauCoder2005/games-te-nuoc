@@ -2,6 +2,7 @@ import { CHARACTER_VARIANTS, MAX_NAME_LENGTH, normalizeName } from '@te-nuoc/sha
 import { startPractice } from '../offline/practice';
 import { connect, mapJoinError, parseRoute } from '../net/colyseus';
 import { showRoom } from './privateLobby';
+import { createCharacterAvatar } from './avatar';
 
 export function isTouchOnly(nav: { maxTouchPoints: number }, mq: (query: string) => boolean): boolean {
   return nav.maxTouchPoints > 0 && !mq('(pointer: fine)');
@@ -39,12 +40,16 @@ export function showHome(root: HTMLElement): void {
   let selectedVariant = getStoredVariant();
   const charTitle = document.createElement('div');
   charTitle.className = 'char-picker-title';
-  charTitle.textContent = 'Chọn nhân vật (khuôn mặt & tóc)';
+  charTitle.textContent = 'Chọn nhân vật (vào trận sẽ mặc đồng phục màu đội Đỏ/Xanh)';
   const charGrid = document.createElement('div');
   charGrid.className = 'char-picker';
   const charDetail = document.createElement('div');
   charDetail.className = 'char-detail';
-  charDetail.textContent = CHARACTER_VARIANTS[selectedVariant].detail;
+  const updateDetailText = (index: number) => {
+    const v = CHARACTER_VARIANTS[index];
+    charDetail.textContent = `${v.label} (${v.role}) — ${v.detail}`;
+  };
+  updateDetailText(selectedVariant);
   const charCards: HTMLButtonElement[] = [];
 
   for (const variant of CHARACTER_VARIANTS) {
@@ -52,23 +57,20 @@ export function showHome(root: HTMLElement): void {
     card.type = 'button';
     card.className = `char-card${variant.id === selectedVariant ? ' selected' : ''}`;
     card.dataset.variant = String(variant.id);
-    const sprites = document.createElement('div');
-    sprites.className = 'char-sprites';
-    const redSprite = document.createElement('span');
-    redSprite.className = 'char-sprite';
-    redSprite.style.backgroundImage = `url('/assets/player_red_v${variant.id}.png')`;
-    const blueSprite = document.createElement('span');
-    blueSprite.className = 'char-sprite';
-    blueSprite.style.backgroundImage = `url('/assets/player_blue_v${variant.id}.png')`;
-    sprites.append(redSprite, blueSprite);
+    const portrait = document.createElement('div');
+    portrait.className = 'char-portrait';
+    portrait.append(createCharacterAvatar(variant.id, 'casual'));
     const cardLabel = document.createElement('span');
     cardLabel.className = 'char-card-label';
     cardLabel.textContent = variant.label;
-    card.append(sprites, cardLabel);
+    const cardRole = document.createElement('span');
+    cardRole.className = `char-card-role gender-${variant.gender}`;
+    cardRole.textContent = variant.role;
+    card.append(portrait, cardLabel, cardRole);
     card.addEventListener('click', () => {
       selectedVariant = variant.id;
       localStorage.setItem('te-nuoc-variant', String(selectedVariant));
-      charDetail.textContent = variant.detail;
+      updateDetailText(selectedVariant);
       for (const item of charCards) item.classList.toggle('selected', item === card);
     });
     charCards.push(card);

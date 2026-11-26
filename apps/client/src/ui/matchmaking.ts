@@ -1,5 +1,6 @@
 import { MAX_PLAYERS, MSG } from '@te-nuoc/shared';
 import type { NetLobbyPlayer } from '../net/colyseus';
+import { createCharacterAvatar } from './avatar';
 
 interface PublicRoomView {
   sessionId: string;
@@ -29,7 +30,7 @@ export function renderMatchmaking(root: HTMLElement, room: PublicRoomView, onLea
       row.className = `lobby-player team-${team}`;
       const face = document.createElement('span');
       face.className = 'lobby-face';
-      face.style.backgroundImage = `url('/assets/player_${team === 0 ? 'red' : 'blue'}_v${member.variant}.png')`;
+      face.append(createCharacterAvatar(member.variant, team));
       const text = document.createElement('span');
       text.className = `player-name team-text-${team}`;
       text.textContent = `${member.name}${member.ready ? ' ✓' : ''}`;

@@ -1,5 +1,5 @@
 import {
-  balloonHeight, activeCovers, homeZone, raftRect, RAFT_CENTER, TEAM_COLORS,
+  balloonHeight, activeCovers, CHARACTER_VARIANTS, homeZone, raftRect, RAFT_CENTER, TEAM_COLORS,
   TILE, VIEW_H, VIEW_W,
 } from '@te-nuoc/shared';
 import type { GameEvent, PlayerState, World } from '@te-nuoc/shared';
@@ -60,6 +60,57 @@ function drawRaft(ctx: CanvasRenderingContext2D, view: RenderView, bank: SpriteB
   drawFrame(ctx, bank?.image('flag_blue') ?? null, rect.x1 - TILE, RAFT_CENTER.y);
 }
 
+function drawCharacterTraits(ctx: CanvasRenderingContext2D, player: PlayerState): void {
+  const variant = CHARACTER_VARIANTS[player.variant] ?? CHARACTER_VARIANTS[0];
+  const px = Math.round(player.x) - 8;
+  const py = Math.round(player.y) - 23;
+  // Side hair bangs visible under swim cap
+  ctx.fillStyle = variant.hair;
+  ctx.fillRect(px + 2, py + 5, 2, 3);
+  ctx.fillRect(px + 12, py + 5, 2, 3);
+  if (variant.hairStyle === 'spiky') {
+    ctx.fillRect(px + 4, py + 5, 2, 2);
+    ctx.fillRect(px + 7, py + 5, 2, 1);
+    ctx.fillRect(px + 10, py + 5, 2, 2);
+  } else if (variant.hairStyle === 'curly') {
+    ctx.fillRect(px + 1, py + 5, 2, 4);
+    ctx.fillRect(px + 13, py + 5, 2, 4);
+    ctx.fillRect(px + 3, py + 5, 10, 1);
+  } else if (variant.hairStyle === 'pigtails') {
+    // Twin pigtails on both sides + ribbon ties
+    ctx.fillStyle = '#2B1E2F';
+    ctx.fillRect(px, py + 5, 3, 7);
+    ctx.fillRect(px + 13, py + 5, 3, 7);
+    ctx.fillStyle = variant.hair;
+    ctx.fillRect(px + 1, py + 6, 2, 5);
+    ctx.fillRect(px + 13, py + 6, 2, 5);
+    ctx.fillStyle = variant.goggle;
+    ctx.fillRect(px + 2, py + 5, 1, 1);
+    ctx.fillRect(px + 13, py + 5, 1, 1);
+  } else if (variant.hairStyle === 'long') {
+    // Long side locks down to shoulders
+    ctx.fillStyle = '#2B1E2F';
+    ctx.fillRect(px + 1, py + 5, 2, 8);
+    ctx.fillRect(px + 13, py + 5, 2, 8);
+    ctx.fillStyle = variant.hair;
+    ctx.fillRect(px + 2, py + 5, 2, 7);
+    ctx.fillRect(px + 12, py + 5, 2, 7);
+  } else if (variant.hairStyle === 'ponytail') {
+    // Side ponytail puff + golden fringe
+    ctx.fillStyle = '#2B1E2F';
+    ctx.fillRect(px + 13, py + 3, 3, 6);
+    ctx.fillStyle = variant.hair;
+    ctx.fillRect(px + 13, py + 4, 2, 4);
+    ctx.fillRect(px + 4, py + 5, 3, 1);
+    ctx.fillRect(px + 9, py + 5, 3, 1);
+  }
+  if (variant.gender === 'female') {
+    ctx.fillStyle = variant.blush;
+    ctx.fillRect(px + 3, py + 9, 2, 1);
+    ctx.fillRect(px + 11, py + 9, 2, 1);
+  }
+}
+
 function drawPlayer(ctx: CanvasRenderingContext2D, player: PlayerState, bank: SpriteBank | null, time: number): void {
   if (player.status === 'respawning') return;
   const team = player.team === 0 ? 'red' : 'blue';
@@ -75,6 +126,8 @@ function drawPlayer(ctx: CanvasRenderingContext2D, player: PlayerState, bank: Sp
   if (!drawFrame(ctx, frame, player.x, player.y)) {
     ctx.fillStyle = TEAM_COLORS[player.team];
     ctx.beginPath(); ctx.arc(player.x, player.y - 8, 8, 0, Math.PI * 2); ctx.fill();
+  } else {
+    drawCharacterTraits(ctx, player);
   }
   if (player.wet > 0) {
     ctx.fillStyle = `rgba(31, 163, 209, ${wetTint(player.wet)})`;
