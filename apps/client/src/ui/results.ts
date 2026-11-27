@@ -78,7 +78,7 @@ export function showResults(root: HTMLElement, winner: 0 | 1, score: [number, nu
   header.className = 'result-header';
   const crown = document.createElement('div');
   crown.className = 'result-crown';
-  crown.textContent = '🏆 BẢNG VÀNG CHIẾN THẮNG 🏆';
+  crown.textContent = 'KẾT QUẢ TRẬN ĐẤU';
   const heading = document.createElement('h2');
   heading.textContent = `ĐỘI ${winner === 0 ? 'ĐỎ' : 'XANH'} THẮNG! · ${score[0]} : ${score[1]}`;
   header.append(crown, heading);
@@ -87,11 +87,11 @@ export function showResults(root: HTMLElement, winner: 0 | 1, score: [number, nu
   rankReward.className = `result-rank-reward ${playerWon ? 'rank-up-win' : ''}`;
   if (playerWon) {
     const updated = addWinStar();
-    rankReward.textContent = `🌟 THẮNG TRẬN +1 SAO! · ${updated.tier.icon} ${updated.tier.name} (${formatStarIcons(updated.stars)})`;
+    rankReward.textContent = `+1 SAO · HẠNG ${updated.tier.name} (${formatStarIcons(updated.stars)})`;
   } else {
     const currentStars = getPlayerStars();
     const currentTier = getRankTier(currentStars);
-    rankReward.textContent = `${currentTier.icon} Hạng hiện tại: ${currentTier.name} (${formatStarIcons(currentStars)})`;
+    rankReward.textContent = `HẠNG ${currentTier.name} (${formatStarIcons(currentStars)})`;
   }
   header.append(rankReward);
   root.append(header);
@@ -99,7 +99,7 @@ export function showResults(root: HTMLElement, winner: 0 | 1, score: [number, nu
   const cards = [
     {
       rank: 1 as const,
-      badge: 'TOP 1 · CÚP VÀNG',
+      badge: 'TOP 1',
       title: 'MVP',
       subtitle: 'Nhiều KO nhất',
       player: awards.mvp === null ? '—' : names.get(awards.mvp) ?? `#${awards.mvp}`,
@@ -107,17 +107,17 @@ export function showResults(root: HTMLElement, winner: 0 | 1, score: [number, nu
     },
     {
       rank: 2 as const,
-      badge: 'TOP 2 · HUÂN CHƯƠNG BẠC',
+      badge: 'TOP 2',
       title: 'Thánh Ném',
-      subtitle: 'Ném trúng thẳng nhiều nhất',
+      subtitle: 'Trúng thẳng',
       player: awards.sharpshooter === null ? '—' : names.get(awards.sharpshooter) ?? `#${awards.sharpshooter}`,
       fullLine: `Thánh Ném: ${awards.sharpshooter === null ? '—' : names.get(awards.sharpshooter) ?? `#${awards.sharpshooter}`}`,
     },
     {
       rank: 3 as const,
-      badge: 'TOP 3 · HUÂN CHƯƠNG ĐỒNG',
+      badge: 'TOP 3',
       title: 'Vua Tõm',
-      subtitle: 'Rơi xuống hồ nhiều nhất',
+      subtitle: 'Rơi nhiều nhất',
       player: awards.mostFalls === null ? '—' : names.get(awards.mostFalls) ?? `#${awards.mostFalls}`,
       fullLine: `Vua Tõm: ${awards.mostFalls === null ? '—' : names.get(awards.mostFalls) ?? `#${awards.mostFalls}`}`,
     },

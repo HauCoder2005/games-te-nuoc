@@ -8,12 +8,12 @@ export interface RankTier {
 }
 
 export const RANK_TIERS: readonly RankTier[] = [
-  { name: 'Đồng Đoàn', minStars: 0, icon: '🥉', color: '#E08E55' },
-  { name: 'Bạc Đoàn', minStars: 3, icon: '🥈', color: '#D8E2EF' },
-  { name: 'Vàng Đoàn', minStars: 6, icon: '🥇', color: '#FFD700' },
-  { name: 'Bạch Kim', minStars: 10, icon: '💎', color: '#4CC9F0' },
-  { name: 'Kim Cương', minStars: 15, icon: '👑', color: '#B57CFF' },
-  { name: 'Cao Thủ', minStars: 22, icon: '🔥', color: '#FF5C77' },
+  { name: 'ĐỒNG', minStars: 0, icon: '', color: '#E08E55' },
+  { name: 'BẠC', minStars: 3, icon: '', color: '#D8E2EF' },
+  { name: 'VÀNG', minStars: 6, icon: '', color: '#FFD700' },
+  { name: 'BẠCH KIM', minStars: 10, icon: '', color: '#4CC9F0' },
+  { name: 'KIM CƯƠNG', minStars: 15, icon: '', color: '#B57CFF' },
+  { name: 'CAO THỦ', minStars: 22, icon: '', color: '#FF5C77' },
 ];
 
 export interface LeaderboardEntry {
@@ -340,9 +340,7 @@ export function getRankTier(stars: number): RankTier {
 }
 
 export function formatStarIcons(stars: number): string {
-  if (stars === 0) return '☆ 0 sao';
-  if (stars <= 5) return `${'⭐'.repeat(stars)} (${stars} sao)`;
-  return `⭐ ×${stars}`;
+  return `${stars} SAO`;
 }
 
 export function getLeaderboard(playerName: string, playerVariant: number): LeaderboardEntry[] {

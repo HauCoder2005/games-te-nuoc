@@ -26,7 +26,7 @@ export function renderMatchmaking(root: HTMLElement, room: PublicRoomView, onLea
   header.className = 'lq-header';
   const badge = document.createElement('div');
   badge.className = `lq-status-badge ${hasEnoughPlayers ? 'lq-found' : 'lq-searching'}`;
-  badge.textContent = hasEnoughPlayers ? '⚔️ ĐÃ TÌM THẤY TRẬN ĐẤU!' : '🔍 ĐANG TÌM TRẬN ĐẤU HẠNG…';
+  badge.textContent = hasEnoughPlayers ? 'ĐÃ TÌM THẤY TRẬN' : 'ĐANG TÌM TRẬN';
   const title = document.createElement('h1');
   title.textContent = waitingText(humans);
   header.append(badge, title);
@@ -74,8 +74,8 @@ export function renderMatchmaking(root: HTMLElement, room: PublicRoomView, onLea
   const progressText = document.createElement('div');
   progressText.className = 'lq-ready-count';
   progressText.textContent = hasEnoughPlayers
-    ? `Đã xác nhận: ${readyCount}/${humans} người chơi`
-    : 'Đang quét tìm thêm người chơi trong khu vực…';
+    ? `XÁC NHẬN: ${readyCount}/${humans}`
+    : 'ĐANG CHỜ NGƯỜI CHƠI…';
   arena.append(progressText);
   root.append(arena);
 
@@ -109,7 +109,7 @@ export function renderMatchmaking(root: HTMLElement, room: PublicRoomView, onLea
 
   const ready = createIconButton(
     own?.ready ? 'check-circle' : 'swords',
-    own?.ready ? 'ĐÃ XÁC NHẬN ✓' : 'XÁC NHẬN VÀO TRẬN',
+    own?.ready ? 'ĐÃ XÁC NHẬN' : 'XÁC NHẬN',
     () => room.send(MSG.ready, { on: !own?.ready }),
   );
   ready.classList.add('lq-confirm-btn');

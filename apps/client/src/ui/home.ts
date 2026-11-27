@@ -5,7 +5,7 @@ import { showRoom } from './privateLobby';
 import { createCharacterAvatar } from './avatar';
 import { createIconButton } from './icons';
 import {
-  formatStarIcons, getActiveAccount, getLeaderboard, getPlayerStars,
+  getActiveAccount, getLeaderboard, getPlayerStars,
   getPlayerWins, getRankTier, loginAccount, logoutAccount,
   registerAccount, registerOrLoginAccount, updateActiveAccountProfile,
 } from './rank';
@@ -26,14 +26,12 @@ export function showHome(root: HTMLElement): void {
   const layout = document.createElement('div');
   layout.className = 'home-layout';
 
-  // Main left panel: Game controls & Auth/Character box + Room box
   const panel = document.createElement('main');
   panel.className = 'home';
   const title = document.createElement('h1');
   title.textContent = 'Aqua Blast';
   panel.append(title);
 
-  // Separate right panel: Leaderboard box
   const leaderboardPanel = document.createElement('aside');
   leaderboardPanel.className = 'home-leaderboard-panel home-box-leaderboard';
 
@@ -62,15 +60,14 @@ export function showHome(root: HTMLElement): void {
     const wins = getPlayerWins();
     const tier = getRankTier(stars);
     rankBadge.style.borderColor = tier.color;
-    rankBadge.textContent = `${tier.icon} ${tier.name}`;
-    rankStars.textContent = `${formatStarIcons(stars)} · ${wins} thắng (Thắng +1 ⭐)`;
+    rankBadge.textContent = `HẠNG ${tier.name}`;
+    rankStars.textContent = `${stars} SAO · ${wins} THẮNG`;
   };
   updateRankBanner();
   rankBanner.append(rankBadge, rankStars);
 
-  // Master in-game display name input (kept in sync with logged-in user or registration form)
   const gameNameInput = document.createElement('input');
-  gameNameInput.placeholder = 'Nhập tên trong game (tối đa 12 ký tự)';
+  gameNameInput.placeholder = 'Tên nhân vật';
   gameNameInput.value = getActiveAccount()?.gameName ?? localStorage.getItem('te-nuoc-name') ?? '';
   gameNameInput.addEventListener('input', () => {
     gameNameInput.value = Array.from(gameNameInput.value).slice(0, MAX_NAME_LENGTH).join('');
@@ -80,8 +77,6 @@ export function showHome(root: HTMLElement): void {
 
   const authContainer = document.createElement('div');
   authContainer.className = 'auth-container';
-  const authStatus = document.createElement('div');
-  authStatus.className = 'auth-status';
   const error = document.createElement('p');
   error.className = 'error';
 
@@ -96,7 +91,6 @@ export function showHome(root: HTMLElement): void {
     const currentAcc = getActiveAccount();
 
     if (currentAcc) {
-      // Logged-in card: saved in localStorage + cookie so user does not need to re-login
       const loggedBox = document.createElement('div');
       loggedBox.className = 'auth-logged-card';
 
@@ -107,42 +101,36 @@ export function showHome(root: HTMLElement): void {
       const userBadge = document.createElement('span');
       userBadge.className = 'auth-username-tag';
       userBadge.textContent = `@${currentAcc.username}`;
-      const savedHint = document.createElement('span');
-      savedHint.className = 'auth-saved-hint';
-      savedHint.textContent = 'Đã lưu phiên đăng nhập (LocalStorage & Cookie)';
-      userSummary.append(userBadge, savedHint);
+      userSummary.append(userBadge);
 
-      const logoutBtn = createIconButton('log-out', 'Đăng xuất', () => {
+      const logoutBtn = createIconButton('log-out', 'THOÁT TK', () => {
         logoutAccount();
-        authStatus.textContent = 'Đã đăng xuất tài khoản.';
         updateRankBanner();
         renderAuthSection();
         renderLeaderboardRows();
       });
-      logoutBtn.className = 'icon-btn auth-logout-btn';
+      logoutBtn.className = 'pixel-btn auth-logout-btn';
       loggedHeader.append(userSummary, logoutBtn);
 
       const gameNameLabel = document.createElement('label');
-      gameNameLabel.textContent = 'Tên hiển thị trong game';
+      gameNameLabel.textContent = 'Tên game';
       gameNameInput.value = currentAcc.gameName;
       gameNameLabel.append(gameNameInput);
 
       loggedBox.append(loggedHeader, gameNameLabel);
       authContainer.append(loggedBox);
-      authStatus.textContent = `✅ Xin chào ${currentAcc.gameName} (@${currentAcc.username}) — Đã ghi danh Bảng Xếp Hạng!`;
       return;
     }
 
-    // Tabs to switch between Login form and Register form
     const tabsBar = document.createElement('div');
     tabsBar.className = 'auth-tabs';
-    const tabLoginBtn = createIconButton('log-in', 'Đăng nhập', () => {
+    const tabLoginBtn = createIconButton('log-in', 'ĐĂNG NHẬP', () => {
       authTab = 'login';
       error.textContent = '';
       renderAuthSection();
     });
     tabLoginBtn.classList.toggle('active', authTab === 'login');
-    const tabRegBtn = createIconButton('user-plus', 'Đăng ký tài khoản', () => {
+    const tabRegBtn = createIconButton('user-plus', 'ĐĂNG KÝ', () => {
       authTab = 'register';
       error.textContent = '';
       renderAuthSection();
@@ -156,9 +144,9 @@ export function showHome(root: HTMLElement): void {
       form.className = 'auth-form auth-form-login';
 
       const userLabel = document.createElement('label');
-      userLabel.textContent = 'Tên trong game / Username';
+      userLabel.textContent = 'Username';
       loginUserInput = gameNameInput;
-      loginUserInput.placeholder = 'Nhập Username hoặc Tên trong game';
+      loginUserInput.placeholder = 'Username';
       userLabel.append(loginUserInput);
 
       const passLabel = document.createElement('label');
@@ -168,10 +156,10 @@ export function showHome(root: HTMLElement): void {
       loginPassInput = document.createElement('input');
       loginPassInput.type = 'password';
       loginPassInput.className = 'auth-password-input';
-      loginPassInput.placeholder = 'Mật khẩu (≥ 3 ký tự)';
+      loginPassInput.placeholder = 'Mật khẩu';
       loginPassInput.value = '123';
 
-      const submitLogin = createIconButton('log-in', 'Đăng nhập', () => {
+      const submitLogin = createIconButton('log-in', 'VÀO TK', () => {
         const res = loginAccount(loginUserInput.value, loginPassInput.value, selectedVariant);
         if (!res.ok) {
           error.textContent = res.error;
@@ -188,9 +176,7 @@ export function showHome(root: HTMLElement): void {
       passLabel.append(passRow);
       form.append(userLabel, passLabel);
       authContainer.append(form);
-      authStatus.textContent = '💡 Đăng nhập hoặc chuyển sang tab "Đăng ký tài khoản" để tạo tài khoản mới';
     } else {
-      // Dedicated Registration Form: Username, Tên game, Password, Xác nhận mật khẩu
       const form = document.createElement('div');
       form.className = 'auth-form auth-form-register';
 
@@ -198,18 +184,18 @@ export function showHome(root: HTMLElement): void {
       regRow1.className = 'auth-two-cols';
 
       const userLabel = document.createElement('label');
-      userLabel.textContent = 'Tài khoản (Username)';
+      userLabel.textContent = 'Username';
       regUserInput = document.createElement('input');
       regUserInput.className = 'reg-username-input';
-      regUserInput.placeholder = 'VD: teovip01';
+      regUserInput.placeholder = 'Username';
       regUserInput.addEventListener('input', () => {
         regUserInput.value = Array.from(regUserInput.value).slice(0, MAX_NAME_LENGTH).join('');
       });
       userLabel.append(regUserInput);
 
       const gameLabel = document.createElement('label');
-      gameLabel.textContent = 'Tên trong game';
-      gameNameInput.placeholder = 'VD: Tèo Bóng Nước';
+      gameLabel.textContent = 'Tên game';
+      gameNameInput.placeholder = 'Tên hiển thị';
       gameLabel.append(gameNameInput);
       regRow1.append(userLabel, gameLabel);
 
@@ -221,19 +207,19 @@ export function showHome(root: HTMLElement): void {
       regPassInput = document.createElement('input');
       regPassInput.type = 'password';
       regPassInput.className = 'reg-password-input';
-      regPassInput.placeholder = 'Mật khẩu (≥ 3 ký tự)';
+      regPassInput.placeholder = 'Mật khẩu';
       passLabel.append(regPassInput);
 
       const confirmLabel = document.createElement('label');
-      confirmLabel.textContent = 'Xác nhận mật khẩu';
+      confirmLabel.textContent = 'Xác nhận MK';
       regConfirmInput = document.createElement('input');
       regConfirmInput.type = 'password';
       regConfirmInput.className = 'reg-confirm-input';
-      regConfirmInput.placeholder = 'Nhập lại mật khẩu';
+      regConfirmInput.placeholder = 'Nhập lại MK';
       confirmLabel.append(regConfirmInput);
       regRow2.append(passLabel, confirmLabel);
 
-      const submitReg = createIconButton('user-plus', 'Hoàn tất Đăng ký', () => {
+      const submitReg = createIconButton('user-plus', 'TẠO TÀI KHOẢN', () => {
         const res = registerAccount(
           regUserInput.value,
           gameNameInput.value,
@@ -255,13 +241,12 @@ export function showHome(root: HTMLElement): void {
 
       form.append(regRow1, regRow2, submitReg);
       authContainer.append(form);
-      authStatus.textContent = '📝 Điền Username, Tên game, Mật khẩu và Xác nhận mật khẩu để tạo tài khoản';
     }
   };
 
   const charTitle = document.createElement('div');
   charTitle.className = 'char-picker-title';
-  charTitle.textContent = 'Chọn nhân vật (vào trận sẽ mặc đồng phục màu đội Đỏ/Xanh)';
+  charTitle.textContent = 'NHÂN VẬT';
   const charGrid = document.createElement('div');
   charGrid.className = 'char-picker';
   const charDetail = document.createElement('div');
@@ -303,26 +288,22 @@ export function showHome(root: HTMLElement): void {
   const roomBox = document.createElement('section');
   roomBox.className = 'home-box home-box-room';
   const roomLabel = document.createElement('label');
-  roomLabel.textContent = 'Mã phòng';
+  roomLabel.textContent = 'PHÒNG RIÊNG';
   const roomRow = document.createElement('div');
   roomRow.className = 'room-input-row';
   const roomCode = document.createElement('input');
-  roomCode.placeholder = 'Mã phòng (4 chữ)';
+  roomCode.placeholder = 'Mã 4 chữ';
   roomCode.value = parseRoute(location.hash).roomCode ?? '';
 
-  // Build Right Leaderboard Column
   const lbHeader = document.createElement('div');
   lbHeader.className = 'lb-header';
   const lbTitle = document.createElement('div');
   lbTitle.className = 'lb-title';
-  lbTitle.textContent = '🏆 BẢNG XẾP HẠNG';
+  lbTitle.textContent = 'BẢNG XẾP HẠNG';
   const lbRule = document.createElement('div');
   lbRule.className = 'lb-rule';
-  lbRule.textContent = 'Thắng 1 trận = +1 ⭐';
-  const lbSub = document.createElement('div');
-  lbSub.className = 'lb-subtitle';
-  lbSub.textContent = 'Đăng ký / Đăng nhập bên trái để lưu phiên tự động & đua Top!';
-  lbHeader.append(lbTitle, lbRule, lbSub);
+  lbRule.textContent = '1 THẮNG = +1 SAO';
+  lbHeader.append(lbTitle, lbRule);
 
   const lbList = document.createElement('div');
   lbList.className = 'lb-list';
@@ -334,7 +315,7 @@ export function showHome(root: HTMLElement): void {
       row.className = `lb-row ${entry.isSelf ? 'lb-row-self' : ''} lb-rank-${index + 1}`;
       const rankNum = document.createElement('span');
       rankNum.className = 'lb-pos';
-      rankNum.textContent = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
+      rankNum.textContent = `#${index + 1}`;
       const avatarWrap = document.createElement('span');
       avatarWrap.className = 'lb-avatar';
       avatarWrap.append(createCharacterAvatar(entry.variant, 'casual'));
@@ -345,10 +326,10 @@ export function showHome(root: HTMLElement): void {
       const tierTag = document.createElement('span');
       tierTag.className = 'lb-tier';
       tierTag.style.color = entryTier.color;
-      tierTag.textContent = `${entryTier.icon} ${entryTier.name}`;
+      tierTag.textContent = entryTier.name;
       const starCount = document.createElement('span');
       starCount.className = 'lb-stars';
-      starCount.textContent = `⭐ ${entry.stars}`;
+      starCount.textContent = `${entry.stars} SAO`;
       row.append(rankNum, avatarWrap, entryName, tierTag, starCount);
       lbList.append(row);
     });
@@ -356,7 +337,7 @@ export function showHome(root: HTMLElement): void {
 
   renderAuthSection();
   renderLeaderboardRows();
-  nameBox.append(rankBanner, authContainer, authStatus, charTitle, charGrid, charDetail);
+  nameBox.append(rankBanner, authContainer, charTitle, charGrid, charDetail);
   leaderboardPanel.append(lbHeader, lbList);
 
   const resolvePlayerCredentials = (): { username: string; gameName: string } | null => {
@@ -369,7 +350,7 @@ export function showHome(root: HTMLElement): void {
     }
     const cleanGame = normalizeName(gameNameInput.value);
     if (!cleanGame) {
-      error.textContent = 'Vui lòng nhập Tên của bạn hoặc Đăng nhập';
+      error.textContent = 'Vui lòng nhập Tên của bạn';
       return null;
     }
     const rawUser = authTab === 'register' && normalizeName(regUserInput.value)

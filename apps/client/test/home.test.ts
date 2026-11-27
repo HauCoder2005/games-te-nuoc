@@ -4,8 +4,8 @@ import { CHARACTER_VARIANTS } from '@te-nuoc/shared';
 import { showHome } from '../src/ui/home';
 import { addWinStar, getActiveAccount, getPlayerStars, getRankTier } from '../src/ui/rank';
 
-describe('home screen boxes, right leaderboard, login & register forms, and Lucide icons', () => {
-  it('places leaderboard in a separate right panel and adds Lucide SVG icons to buttons', () => {
+describe('home screen boxes, right leaderboard, login & register forms, and pixel buttons', () => {
+  it('places leaderboard in a separate right panel with clean pixel buttons and no button SVG icons', () => {
     localStorage.clear();
     document.cookie = 'aqua_blast_session=; path=/; max-age=0';
     const root = document.createElement('div');
@@ -31,11 +31,10 @@ describe('home screen boxes, right leaderboard, login & register forms, and Luci
     const roomInput = roomBox?.querySelector('input') as HTMLInputElement | null;
     expect(roomInput?.value).toBe('KHVT');
 
-    // All action buttons have Lucide SVG icons
-    const iconButtons = mainPanel?.querySelectorAll('button.icon-btn') ?? [];
-    expect(iconButtons.length).toBeGreaterThanOrEqual(5);
-    for (const btn of iconButtons) {
-      expect(btn.querySelector('svg.btn-icon')).not.toBeNull();
+    const pixelButtons = mainPanel?.querySelectorAll('button.pixel-btn') ?? [];
+    expect(pixelButtons.length).toBeGreaterThanOrEqual(5);
+    for (const btn of pixelButtons) {
+      expect(btn.querySelector('svg')).toBeNull();
     }
   });
 
@@ -50,7 +49,7 @@ describe('home screen boxes, right leaderboard, login & register forms, and Luci
     cards[2].click();
     expect(localStorage.getItem('te-nuoc-variant')).toBe('2');
 
-    // Click "Đăng ký tài khoản" tab
+    // Click "ĐĂNG KÝ" tab
     const tabButtons = root.querySelectorAll<HTMLButtonElement>('.auth-tabs button');
     expect(tabButtons).toHaveLength(2);
     tabButtons[1].click();
@@ -75,14 +74,12 @@ describe('home screen boxes, right leaderboard, login & register forms, and Luci
     confirmInput.value = 'pass123';
     submitRegBtn.click();
 
-    // Logged in card shown immediately & persisted in localStorage + cookie
     expect(getActiveAccount()?.username).toBe('teovip01');
     expect(getActiveAccount()?.gameName).toBe('Tèo Siêu Cấp');
     expect(document.cookie).toContain('aqua_blast_session=teovip01');
     expect(root.querySelector('.auth-logged-card')).not.toBeNull();
     expect(root.querySelector('.auth-username-tag')?.textContent).toBe('@teovip01');
 
-    // Re-mounting home screen remembers login without needing to log in again
     const root2 = document.createElement('div');
     showHome(root2);
     expect(root2.querySelector('.auth-logged-card')).not.toBeNull();
@@ -92,6 +89,6 @@ describe('home screen boxes, right leaderboard, login & register forms, and Luci
     const afterWin = addWinStar();
     expect(afterWin.stars).toBe(1);
     expect(getActiveAccount()?.stars).toBe(1);
-    expect(getRankTier(3).name).toBe('Bạc Đoàn');
+    expect(getRankTier(3).name).toBe('BẠC');
   });
 });
