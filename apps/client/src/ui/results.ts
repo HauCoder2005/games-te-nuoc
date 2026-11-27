@@ -87,7 +87,7 @@ export function showResults(root: HTMLElement, winner: 0 | 1, score: [number, nu
   rankReward.className = `result-rank-reward ${playerWon ? 'rank-up-win' : ''}`;
   if (playerWon) {
     const updated = addWinStar();
-    rankReward.textContent = `+1 SAO · HẠNG ${updated.tier.name} (${formatStarIcons(updated.stars)})`;
+    rankReward.textContent = `+1 ⭐ · HẠNG ${updated.tier.name} (${formatStarIcons(updated.stars)})`;
   } else {
     const currentStars = getPlayerStars();
     const currentTier = getRankTier(currentStars);

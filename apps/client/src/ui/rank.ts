@@ -340,7 +340,9 @@ export function getRankTier(stars: number): RankTier {
 }
 
 export function formatStarIcons(stars: number): string {
-  return `${stars} SAO`;
+  if (stars === 0) return '☆ 0';
+  if (stars <= 5) return `${'⭐'.repeat(stars)} (${stars})`;
+  return `⭐ ×${stars}`;
 }
 
 export function getLeaderboard(playerName: string, playerVariant: number): LeaderboardEntry[] {

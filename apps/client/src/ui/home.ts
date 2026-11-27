@@ -5,7 +5,7 @@ import { showRoom } from './privateLobby';
 import { createCharacterAvatar } from './avatar';
 import { createIconButton } from './icons';
 import {
-  getActiveAccount, getLeaderboard, getPlayerStars,
+  formatStarIcons, getActiveAccount, getLeaderboard, getPlayerStars,
   getPlayerWins, getRankTier, loginAccount, logoutAccount,
   registerAccount, registerOrLoginAccount, updateActiveAccountProfile,
 } from './rank';
@@ -61,7 +61,7 @@ export function showHome(root: HTMLElement): void {
     const tier = getRankTier(stars);
     rankBadge.style.borderColor = tier.color;
     rankBadge.textContent = `HẠNG ${tier.name}`;
-    rankStars.textContent = `${stars} SAO · ${wins} THẮNG`;
+    rankStars.textContent = `${formatStarIcons(stars)} · ${wins} THẮNG`;
   };
   updateRankBanner();
   rankBanner.append(rankBadge, rankStars);
@@ -302,7 +302,7 @@ export function showHome(root: HTMLElement): void {
   lbTitle.textContent = 'BẢNG XẾP HẠNG';
   const lbRule = document.createElement('div');
   lbRule.className = 'lb-rule';
-  lbRule.textContent = '1 THẮNG = +1 SAO';
+  lbRule.textContent = '1 THẮNG = +1 ⭐';
   lbHeader.append(lbTitle, lbRule);
 
   const lbList = document.createElement('div');
@@ -329,7 +329,7 @@ export function showHome(root: HTMLElement): void {
       tierTag.textContent = entryTier.name;
       const starCount = document.createElement('span');
       starCount.className = 'lb-stars';
-      starCount.textContent = `${entry.stars} SAO`;
+      starCount.textContent = `⭐ ${entry.stars}`;
       row.append(rankNum, avatarWrap, entryName, tierTag, starCount);
       lbList.append(row);
     });
