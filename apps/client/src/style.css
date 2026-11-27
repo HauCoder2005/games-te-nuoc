@@ -220,6 +220,101 @@ button:active { transform: translate(2px, 2px); box-shadow: inset 2px 2px 0 #d99
 .lb-tier { font-size: 11px; font-weight: 800; white-space: nowrap; }
 .lb-stars { font-size: 12px; font-weight: 900; color: #ffd700; white-space: nowrap; background: #31223a; padding: 2px 6px; border: 1px solid #594466; border-radius: 0; }
 
+/* Matchmaking Radar Loading Screen (Phase 1) */
+.mm-loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 16px;
+  background: #231629;
+}
+.mm-radar {
+  position: relative;
+  width: 148px;
+  height: 148px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 8px 0;
+}
+.mm-radar-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid #6ec1ff;
+  opacity: 0;
+  animation: radar-pulse 2.4s infinite ease-out;
+}
+.mm-ring-2 { animation-delay: 0.8s; border-color: #ffcf44; }
+.mm-ring-3 { animation-delay: 1.6s; border-color: #6ec1ff; }
+@keyframes radar-pulse {
+  0% { transform: scale(0.35); opacity: 0.95; }
+  100% { transform: scale(1.15); opacity: 0; }
+}
+.mm-radar-sweep {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 207, 68, 0.55);
+  animation: radar-spin 4s linear infinite;
+}
+@keyframes radar-spin {
+  to { transform: rotate(360deg); }
+}
+.mm-radar-avatar {
+  position: relative;
+  z-index: 2;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: #31223a;
+  border: 3px solid #ffd700;
+  box-shadow: 0 0 18px rgba(255, 215, 0, 0.45);
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mm-own-name {
+  font-size: 18px;
+  font-weight: 900;
+  color: #ffe066;
+}
+.mm-timer {
+  font-size: 15px;
+  font-weight: 900;
+  color: #78c6ff;
+  background: #181020;
+  padding: 4px 14px;
+  border: 2px solid #4e3a5e;
+  letter-spacing: 1px;
+}
+.mm-loading-bar {
+  width: min(260px, 80%);
+  height: 8px;
+  background: #140c1c;
+  border: 2px solid #4e3a5e;
+  overflow: hidden;
+  position: relative;
+}
+.mm-loading-fill {
+  width: 45%;
+  height: 100%;
+  background: #ffcf44;
+  animation: mm-bar-slide 1.3s infinite ease-in-out;
+}
+@keyframes mm-bar-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(230%); }
+}
+.mm-cancel-btn {
+  margin-top: 6px;
+  background: #e53b3b;
+  color: #ffffff;
+}
+
 .lq-header { margin-bottom: 10px; }
 .lq-status-badge { display: inline-block; padding: 4px 12px; border-radius: 0; font-size: 13px; font-weight: 900; letter-spacing: 1px; margin-bottom: 6px; }
 .lq-searching { background: #2e384d; color: #78c6ff; border: 2px solid #5ca9ff; }
