@@ -18,7 +18,7 @@ Ký hiệu: **[Bạn chốt]** = chủ dự án đã quyết. **[Đề xuất]**
 - **[Bạn chốt]** Có **server game riêng**, vì nhiều phòng và nhiều người chơi cùng lúc.
 - **[Bạn chốt]** Hai cách vào trận:
   - **Nhập mã phòng** để vào **phòng riêng** chơi với nhau.
-  - **Ghép ngẫu nhiên** ("thế giới"): bấm nút, chờ tìm người, có người rồi thì bấm **Bắt đầu** để xếp trận.
+  - **Ghép ngẫu nhiên** ("thế giới"): bấm nút, chờ đủ 10 người thật rồi tự vào trận 5v5.
 - **[Bạn chốt]** **Cả đội mặc chung một màu**: Đội Đỏ và Đội Xanh dương.
 - **[Bạn chốt]** **Chỉ đồng đội mới hiện tên** trên đầu. Đối thủ không có tên.
 - **[Bạn chốt]** Nhân vật pixel nhìn thẳng. Hai ảnh tham khảo (ảnh stock có watermark, và lính canh trong phim Squid Game) **không dùng**. Nhân vật trong game là **đồng phục đội tự thiết kế, nguyên bản**.
@@ -31,9 +31,9 @@ Thành công nghĩa là một nhóm bạn mở link, chia đội trong vòng 1 p
 ## 2. Mục tiêu, không làm, và những thứ phải tránh
 
 **Mục tiêu (v1)**
-- 2 đội **Đỏ** và **Xanh**, đấu 4v4 hoặc 5v5. Chỗ trống được lấp bằng bot.
+- 2 đội **Đỏ** và **Xanh**, đấu 4v4 hoặc 5v5. Phòng riêng có thể lấp chỗ trống bằng bot; ghép công khai cần đủ 10 người thật.
 - **Phòng riêng**: tạo phòng, nhận **mã 4 chữ** / **link chia sẻ**, bạn bè nhập mã để vào. Không cần tài khoản.
-- **Ghép ngẫu nhiên**: một nút bấm là vào phòng chờ công khai cùng người lạ, đủ người thì bấm Bắt đầu.
+- **Ghép ngẫu nhiên**: một nút bấm là vào phòng chờ công khai cùng người lạ; đủ 10 người thì tự vào trận, không lấp bot.
 - Một server chạy được **nhiều phòng song song** (mục tiêu v1: ít nhất 50 phòng / 500 người trên một máy nhỏ).
 - Một trận dài 3–5 phút, đua tới 10 điểm. Có giới hạn thời gian và **bàn thắng vàng**.
 - Chạy trên Chrome, Edge, Firefox, Safari máy tính, điều khiển bằng bàn phím và chuột.
@@ -55,7 +55,7 @@ Thành công nghĩa là một nhóm bạn mở link, chia đội trong vòng 1 p
 - Bị "canh điểm hồi sinh": vừa hồi sinh đã bị đẩy rơi ngay.
 - Một người spam bóng là thắng. Đã có giới hạn bằng hệ thống đạn.
 - Trận đấu hết hồi hộp vì một đội bỏ xa quá sớm.
-- Phòng ghép ngẫu nhiên **kẹt mãi** vì có người treo máy không bấm Bắt đầu.
+- Phòng ghép ngẫu nhiên vào trận khi chưa đủ 10 người thật hoặc lấp bot vào chỗ trống.
 - Mã phòng riêng bị người lạ đoán trúng rồi vào phá: phòng riêng **không bao giờ** xuất hiện trong ghép ngẫu nhiên.
 
 ## 3. Bối cảnh và bản đồ **[Đề xuất]**
@@ -271,8 +271,6 @@ Tick mô phỏng là 30Hz. Đơn vị: px, giây, px/giây.
 | `KO_CREDIT_WINDOW` | 3 | |
 | `CHAIN_KB_MIN` / `CHAIN_TRANSFER` / `CHAIN_COOLDOWN` | 120 / 0.4 / 0.3 | M4 |
 | `MAX_PLAYERS` | 10 | Tối đa 5 mỗi đội |
-| `PUBLIC_MIN_HUMANS` | 2 | Phòng ghép ngẫu nhiên |
-| `PUBLIC_HALF_READY_WAIT` / `PUBLIC_FULL_WAIT` | 20 / 10 | Giây |
 | `START_COUNTDOWN` | 3 | Giây, sau khi đủ điều kiện |
 | `RECONNECT_GRACE` | 20 | Giây giữ chỗ khi rớt mạng |
 | `MAX_ROOMS_PER_IP_PER_MIN` | 5 | |
@@ -298,19 +296,13 @@ Tick mô phỏng là 30Hz. Đơn vị: px, giây, px/giây.
 ### 6.2 Ghép ngẫu nhiên ("thế giới")
 1. Bấm **Ghép ngẫu nhiên** → client gọi `joinOrCreate("match", { mode: "public", name })`. Server đưa vào một **phòng chờ công khai** còn chỗ và chưa bắt đầu trận, hết phòng thì tạo phòng mới.
 2. Màn **Đang tìm người chơi…** hiện:
-   - Số người, ví dụ "6/10", và danh sách hai đội. Server tự chia đội cho đều; người chơi không đổi đội được ở chế độ này.
-   - Nút **Bắt đầu** (bật/tắt, nghĩa là "tôi sẵn sàng"). Ai đã bấm thì có dấu ✓.
-   - Nút **Rời phòng**.
-   - Dòng nhắc "Cần ít nhất 2 người".
-3. **Luật bắt đầu** (để không bị kẹt vì người treo máy):
-   - Có ≥ `PUBLIC_MIN_HUMANS` (2) người và **tất cả** đã bấm Bắt đầu → đếm ngược 3 giây rồi vào trận.
-   - Có ≥ 2 người và **ít nhất một nửa** đã bấm → hiện "Trận bắt đầu sau 20 giây" (`PUBLIC_HALF_READY_WAIT`). Hết giờ thì vào trận dù chưa ai bấm thêm.
-   - Phòng đủ 10 người → đếm ngược 10 giây (`PUBLIC_FULL_WAIT`) rồi vào trận.
-   - Có người rời hoặc bỏ bấm làm điều kiện không còn đúng → hủy đếm ngược.
+   - Radar xoay trong lúc chờ, số người "N/10" và 10 ô người chơi. Server tự chia đội cho đều; người chơi không đổi đội được ở chế độ này.
+   - Ô trống hiện "Đang chờ", không hiển thị bot. Có nút **HỦY GHÉP TRẬN**.
+3. **Luật bắt đầu**: khi phòng đủ đúng 10 người thật đang kết nối, server tự vào trận; không cần nút xác nhận hoặc đếm ngược tại sảnh. Nếu chưa đủ 10 người thì tiếp tục chờ.
 4. Lúc vào trận:
    - Server **khóa phòng** (`lock()`) để người mới được ghép sang phòng khác.
-   - Chế độ công khai luôn là **5v5, tới 10 điểm**, lấp chỗ trống bằng bot.
-5. Hết trận: mọi người quay về màn chờ của **chính phòng đó**, trạng thái Bắt đầu đặt lại, phòng **mở khóa** nếu còn chỗ.
+   - Chế độ công khai luôn là **5v5 người thật, tới 10 điểm**, không lấp bot kể cả khi có người rời giữa trận.
+5. Hết trận: phòng **mở khóa** nếu còn dưới 10 người; nếu đủ 10 người vẫn kết nối thì sau 1 giây ở sảnh sẽ tự vào trận mới.
 6. Phòng công khai rỗng người thật thì tự hủy.
 
 ### 6.3 Phòng riêng
@@ -543,8 +535,8 @@ Giải thích các trường trong `in`:
   - Cùng seed thì kết quả giống hệt nhau.
 - **`apps/server`** (test phòng của Colyseus hoặc client SDK nối vào server chạy thử):
   - Phòng riêng có mã 4 chữ hợp lệ; `joinById` vào được; `joinOrCreate` công khai **không bao giờ** vào phòng riêng.
-  - Hai người ghép ngẫu nhiên vào cùng phòng; người thứ 11 sang phòng mới.
-  - Luật bắt đầu công khai: đủ điều kiện thì đếm ngược; mất điều kiện thì hủy; phòng khóa khi vào trận và mở lại sau trận.
+  - Chín người ghép ngẫu nhiên vẫn chờ; người thứ 10 làm trận 5v5 bắt đầu tự động, không có bot; người thứ 11 sang phòng mới.
+  - Phòng công khai khóa khi vào trận và mở lại sau trận nếu còn dưới 10 người.
   - Chủ phòng thoát thì chuyển quyền; người thường gửi `start` bị từ chối.
   - Input sai định dạng bị bỏ qua, không làm sập phòng.
   - Rớt mạng rồi kết nối lại trong 20 giây thì giữ nguyên chỗ.

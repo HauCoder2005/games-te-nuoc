@@ -1,25 +1,23 @@
 import { describe, expect, it, vi } from 'vitest';
 import { JSDOM } from 'jsdom';
-import { countdownText, renderMatchmaking, waitingText } from '../src/ui/matchmaking';
+import { renderMatchmaking, waitingText } from '../src/ui/matchmaking';
 import { showError } from '../src/ui/errors';
 
 describe('public waiting room', () => {
-  it('formats human count and countdown in Vietnamese', () => {
+  it('formats human count in Vietnamese', () => {
     expect(waitingText(6)).toBe('Đang tìm người chơi… 6/10');
-    expect(countdownText(20)).toBe('Trận bắt đầu sau 20 giây');
     expect(showError('full')).toBe('Phòng đầy');
   });
 
-  it('shows radar loading screen when searching alone, then confirmation screen when enough players join', () => {
+  it('keeps the spinning radar until ten people and never shows bots or a ready button', () => {
     const dom = new JSDOM('<main id="app"></main>');
     vi.stubGlobal('document', dom.window.document);
     const root = dom.window.document.getElementById('app')!;
-    const send = vi.fn();
     const onLeave = vi.fn();
 
     // 1 player alone (countdown 0) -> Shows Radar Searching Loading screen
     renderMatchmaking(root, {
-      sessionId: 'a', send,
+      sessionId: 'a',
       state: { lobby: { countdown: 0, players: new Map([['a', {
         sessionId: 'a', slot: 0, name: '<img src=x onerror=alert(1)>', team: 0,
         variant: 0, isBot: false, ready: false, connected: true,
@@ -30,10 +28,10 @@ describe('public waiting room', () => {
     expect(root.querySelector('.mm-radar')).not.toBeNull();
     expect(root.textContent).toContain('ĐANG GHÉP TRẬN');
 
-    // 2nd player joins -> Transitions to Match Found confirmation board with XÁC NHẬN button
+    // A second player keeps the room searching for eight more humans.
     renderMatchmaking(root, {
-      sessionId: 'a', send,
-      state: { lobby: { countdown: 20, players: new Map([
+      sessionId: 'a',
+      state: { lobby: { countdown: 0, players: new Map([
         ['a', {
           sessionId: 'a', slot: 0, name: '<img src=x onerror=alert(1)>', team: 0,
           variant: 0, isBot: false, ready: false, connected: true,
@@ -45,10 +43,11 @@ describe('public waiting room', () => {
       ]) } },
     }, onLeave);
     expect(root.querySelector('img')).toBeNull();
-    expect(root.querySelector('.lq-arena-found')).not.toBeNull();
-    expect(root.textContent).toContain('Trận bắt đầu sau 20 giây');
-    root.querySelector<HTMLButtonElement>('.lq-confirm-btn')?.click();
-    expect(send).toHaveBeenCalledWith('ready', { on: true });
+    expect(root.querySelector('.mm-loading-screen')).not.toBeNull();
+    expect(root.textContent).toContain('2/10');
+    expect(root.querySelectorAll('.lq-slot')).toHaveLength(10);
+    expect(root.textContent).not.toContain('BOT');
+    expect(root.querySelector('.lq-confirm-btn')).toBeNull();
     vi.unstubAllGlobals();
   });
 });

@@ -148,9 +148,7 @@ button:active { transform: translate(2px, 2px); box-shadow: inset 2px 2px 0 #d99
   .lb-row { padding: 4px 6px; font-size: 11px; grid-template-columns: 22px 20px minmax(0, 1fr) auto auto; }
   .online { width: 100%; max-height: 100dvh; overflow-y: auto; padding: 8px 12px; }
   .online h1 { font-size: 22px; margin-bottom: 6px; }
-  .lq-arena { padding: 8px; margin-bottom: 8px; }
   .lq-slot-circle { width: 36px; height: 36px; }
-  .lq-confirm-btn { padding: 7px 18px; font-size: 15px; }
   .touch-action-buttons { gap: 8px; }
 }
 @media (max-width: 680px) {
@@ -222,10 +220,12 @@ button:active { transform: translate(2px, 2px); box-shadow: inset 2px 2px 0 #d99
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
   gap: 12px;
   padding: 20px 16px;
   background: #231629;
 }
+.mm-slots-grid { width: min(100%, 620px); margin: 0; }
 .mm-radar {
   position: relative;
   width: 148px;
@@ -244,10 +244,9 @@ button:active { transform: translate(2px, 2px); box-shadow: inset 2px 2px 0 #d99
   animation: radar-pulse 2.4s infinite ease-out;
 }
 @media (prefers-reduced-motion: reduce) {
-  .mm-radar-ring, .mm-radar-sweep, .mm-loading-fill, .rotate-phone-graphic,
+  .mm-radar-ring, .mm-radar-sweep, .rotate-phone-graphic,
   .score-pulse .score, .game-stack.shake { animation: none; }
   .mm-radar-ring { opacity: 0.55; }
-  .mm-loading-fill { transform: none; }
 }
 .mm-ring-2 { animation-delay: 0.8s; border-color: #ffcf44; }
 .mm-ring-3 { animation-delay: 1.6s; border-color: #6ec1ff; }
@@ -294,48 +293,20 @@ button:active { transform: translate(2px, 2px); box-shadow: inset 2px 2px 0 #d99
   border: 2px solid #4e3a5e;
   letter-spacing: 1px;
 }
-.mm-loading-bar {
-  width: min(260px, 80%);
-  height: 8px;
-  background: #140c1c;
-  border: 2px solid #4e3a5e;
-  overflow: hidden;
-  position: relative;
-}
-.mm-loading-fill {
-  width: 45%;
-  height: 100%;
-  background: #ffcf44;
-  animation: mm-bar-slide 1.3s infinite ease-in-out;
-}
-@keyframes mm-bar-slide {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(230%); }
-}
 .mm-cancel-btn {
   margin-top: 6px;
   background: #e53b3b;
   color: #ffffff;
 }
 
-.lq-header { margin-bottom: 10px; }
 .lq-status-badge { display: inline-block; padding: 4px 12px; border-radius: 0; font-size: 13px; font-weight: 900; letter-spacing: 1px; margin-bottom: 6px; }
 .lq-searching { background: #2e384d; color: #78c6ff; border: 2px solid #5ca9ff; }
-.lq-found { background: #4a3219; color: #ffe066; border: 2px solid #ffd700; }
-.lq-arena { padding: 14px; background: #2d1f3a; border: 3px solid #ffd700; box-shadow: 4px 4px 0 #140c1c; border-radius: 0; margin-bottom: 12px; }
 .lq-slots-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
 .lq-slot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .lq-slot-circle { position: relative; width: 48px; height: 48px; border-radius: 0; background: #181020; border: 3px solid #594466; box-shadow: 2px 2px 0 #110b16; display: flex; align-items: center; justify-content: center; padding: 5px; }
 .lq-slot-filled .lq-slot-circle { border-color: #6ec1ff; background: #2c1e38; }
-.lq-slot-ready .lq-slot-circle { border-color: #2ecc71; background: #1e3a2f; }
-.lq-slot-check { position: absolute; right: -3px; bottom: -3px; width: 18px; height: 18px; border-radius: 0; background: #2ecc71; color: #111; font-size: 12px; font-weight: 900; display: flex; align-items: center; justify-content: center; border: 2px solid #181020; }
 .lq-slot-spinner { font-size: 18px; color: #7d6b91; font-weight: 900; }
 .lq-slot-name { font-size: 12px; font-weight: 700; color: #a8a0ad; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lq-ready-count { font-size: 14px; font-weight: 800; color: #ffe066; }
-.lq-actions { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 8px; }
-.lq-confirm-btn { min-width: 220px; padding: 10px 24px; font-size: 19px; font-weight: 900; background: #ffd700; color: #1c1224; border: 3px solid #181020; border-radius: 0; }
-.lq-confirm-btn.lq-confirmed { background: #2ecc71; color: #ffffff; border-color: #181020; }
-.lq-countdown { font-size: 17px; font-weight: 900; color: #ffd700; margin: 2px 0; }
 .lq-hint { font-size: 13px; color: #b9b0c4; margin: 0; }
 .lq-leave-btn { background: #392942; color: #e9fcff; font-size: 14px; padding: 6px 14px; box-shadow: 3px 3px 0 #140c1c; }
 

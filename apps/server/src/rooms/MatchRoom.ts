@@ -5,12 +5,12 @@ import {
   MAX_PLAYERS, MSG, normalizeName, PROTOCOL_VERSION, RAFT_H, RAFT_W, RNG_DIVISOR,
   SCORE_TO_WIN, setBot, step, validateInput, removePlayer, RECONNECT_GRACE, MAX_ROOMS_PER_IP_PER_MIN,
   TICK_METRICS_EVERY, TOTAL_ROUNDS,
-  LOBBY_TICK_MS,
+  PUBLIC_REMATCH_WAIT_MS, LOBBY_TICK_MS,
 } from '@te-nuoc/shared';
 import type { ErrorCode, InputFrame, World } from '@te-nuoc/shared';
 import { GameState, LobbyPlayer, LobbyState, RoomState } from './schema.js';
 import { generateRoomCode, releaseRoomCode } from './roomCode.js';
-import { LobbyModel, publicStartDecision } from './lobby.js';
+import { LobbyModel, publicCanStart } from './lobby.js';
 import { MsgLimiter } from './msgLimiter.js';
 import { syncState } from './syncState.js';
 import { RateLimiter } from './rateLimit.js';
@@ -60,16 +60,9 @@ export class MatchRoom extends Room<{ state: RoomState }> {
       const error = this.lobby.shuffle(client.sessionId, () => randomInt(RNG_DIVISOR) / RNG_DIVISOR);
       if (error) this.sendError(client, error); else this.syncLobby();
     },
-    [MSG.ready]: (client: Client, raw: unknown) => {
+    [MSG.ready]: (client: Client) => {
       if (!this.limiter.allow(client.sessionId, Date.now())) return;
-      const member = this.lobby.members.find((candidate) => candidate.sessionId === client.sessionId);
-      if (this.mode !== 'public' || !member || this.world || !isObject(raw) || typeof raw.on !== 'boolean') {
-        this.sendError(client, 'bad_request');
-        return;
-      }
-      member.ready = raw.on;
-      this.updatePublicCountdown();
-      this.syncLobby();
+      this.sendError(client, 'bad_request');
     },
   };
 
@@ -94,7 +87,7 @@ export class MatchRoom extends Room<{ state: RoomState }> {
     this.lobby = new LobbyModel(this.mode);
     this.state.lobby = new LobbyState({
       mode: this.mode, code: '', hostSessionId: '', phase: 'lobby', countdown: 0,
-      teamSize: 5, scoreToWin: SCORE_TO_WIN, botFill: true,
+      teamSize: 5, scoreToWin: SCORE_TO_WIN, botFill: this.mode === 'private',
     });
     this.state.game = this.newGameState();
     if (this.mode === 'private') {
@@ -103,7 +96,6 @@ export class MatchRoom extends Room<{ state: RoomState }> {
       this.state.lobby.code = this.code;
       await this.setPrivate(true);
     }
-    this.startLobbyClock();
     this.log('room_created');
   }
 
@@ -135,8 +127,8 @@ export class MatchRoom extends Room<{ state: RoomState }> {
         this.namesBySlot.set(member.slot, member.name);
         syncState(this.world, this.state.game, this.namesBySlot);
       }
-      this.updatePublicCountdown();
       this.syncLobby();
+      this.maybeStartPublicMatch();
     } catch (error) {
       throw new ServerError(400, error instanceof Error && error.message === 'full' ? ERROR_TEXT.full : ERROR_TEXT.bad_request);
     }
@@ -160,6 +152,7 @@ export class MatchRoom extends Room<{ state: RoomState }> {
       const player = this.world?.players.find((candidate) => candidate.slot === member.slot);
       if (player) { player.lastTh = 0; player.lastDa = 0; }
       this.syncLobby();
+      this.maybeStartPublicMatch();
     }).catch(() => this.finalizeLeave(client.sessionId));
   }
 
@@ -180,8 +173,8 @@ export class MatchRoom extends Room<{ state: RoomState }> {
     }
     this.lobby.leave(sessionId);
     this.limiter.remove(sessionId);
-    this.updatePublicCountdown();
     this.syncLobby();
+    if (this.mode === 'public' && !this.world && this.locked && this.lobby.members.length < MAX_PLAYERS) void this.unlock();
   }
 
   async onDispose(): Promise<void> {
@@ -201,7 +194,7 @@ export class MatchRoom extends Room<{ state: RoomState }> {
     target.code = this.code;
     target.hostSessionId = this.lobby.hostId ?? '';
     target.phase = this.lobby.phase;
-    target.countdown = this.publicCountdown;
+    target.countdown = 0;
     target.teamSize = this.lobby.settings.teamSize;
     target.scoreToWin = this.lobby.settings.scoreToWin;
     target.botFill = this.lobby.settings.botFill;
@@ -246,20 +239,10 @@ export class MatchRoom extends Room<{ state: RoomState }> {
     this.beginMatch();
   }
 
-  private publicCountdown = 0;
-
-  private updatePublicCountdown(): void {
-    if (this.mode !== 'public' || this.world) return;
-    const humans = this.lobby.members.length;
-    const ready = this.lobby.members.filter((member) => member.ready).length;
-    const decision = publicStartDecision(humans, ready, humans >= MAX_PLAYERS);
-    if (!decision) {
-      this.publicCountdown = 0;
-      this.lobby.phase = 'lobby';
-    } else {
-      this.publicCountdown = this.publicCountdown > 0
-        ? Math.min(this.publicCountdown, decision.countdown) : decision.countdown;
-      this.lobby.phase = 'starting';
+  private maybeStartPublicMatch(): void {
+    if (this.mode !== 'public' || this.world || this.lobby.phase !== 'lobby') return;
+    if (publicCanStart(this.lobby.members.length) && this.lobby.members.every((member) => member.connected)) {
+      this.beginMatch();
     }
   }
 
@@ -276,22 +259,12 @@ export class MatchRoom extends Room<{ state: RoomState }> {
       if (entry.isBot) this.botMemory.set(entry.slot, createBotMemory(seed + entry.slot));
     }
     this.lobby.phase = 'match';
-    this.publicCountdown = 0;
     if (this.mode === 'public') void this.lock();
     this.matchEndLogged = false;
     this.syncLobby();
     syncState(this.world, this.state.game, this.namesBySlot);
     this.setFixedTimestep((context) => this.tick(context.dt), 1 / DT);
     this.log('match_started');
-  }
-
-  private startLobbyClock(): void {
-    this.setTimestep((deltaMs) => {
-      if (this.mode !== 'public' || this.publicCountdown <= 0 || this.world) return;
-      this.publicCountdown = Math.max(0, this.publicCountdown - deltaMs / 1000);
-      this.state.lobby.countdown = this.publicCountdown;
-      if (this.publicCountdown === 0) this.beginMatch();
-    }, LOBBY_TICK_MS);
   }
 
   private tick(dt: number): void {
@@ -319,12 +292,23 @@ export class MatchRoom extends Room<{ state: RoomState }> {
     }
     if (this.world.phase === 'matchEnd' && this.world.phaseTimer <= 0) {
       this.world = null;
+      this.setTimestep();
       this.state.game = this.newGameState();
       this.lobby.phase = 'lobby';
       for (const member of this.lobby.members) member.ready = false;
-      if (this.mode === 'public' && this.lobby.members.length < MAX_PLAYERS) void this.unlock();
       this.syncLobby();
-      this.startLobbyClock();
+      if (this.mode === 'public') {
+        if (this.lobby.members.length < MAX_PLAYERS) void this.unlock();
+        else {
+          let elapsedMs = 0;
+          this.setTimestep((deltaMs) => {
+            elapsedMs += deltaMs;
+            if (elapsedMs < PUBLIC_REMATCH_WAIT_MS) return;
+            this.setTimestep();
+            this.maybeStartPublicMatch();
+          }, LOBBY_TICK_MS);
+        }
+      }
     }
     const tickMs = performance.now() - tickStart;
     this.tickCount++;

@@ -82,15 +82,15 @@ it('match end returns to lobby after ten seconds', async () => {
   await vi.waitFor(() => expect(room.state.lobby.phase).toBe('lobby'));
   await host.leave();
 });
-it('uses a slow lobby clock and restores it after a match', async () => {
+it('stops the simulation clock after returning to a private lobby', async () => {
   const host = await server.sdk.create('match', options('A'));
   const room = server.getRoomById<MatchRoom>(host.roomId);
-  const lobbyClock = vi.spyOn(room, 'setTimestep');
+  const stopClock = vi.spyOn(room, 'setTimestep');
   host.send('start', {});
   await vi.waitFor(() => expect(room.world).not.toBeNull());
   room.world!.phase = 'matchEnd';
   room.world!.phaseTimer = 0.01;
-  await vi.waitFor(() => expect(lobbyClock).toHaveBeenCalledWith(expect.any(Function), 100));
+  await vi.waitFor(() => expect(stopClock).toHaveBeenCalledWith());
   await host.leave();
 });
 it('MsgLimiter permits at most 60 messages in a one second window', () => {

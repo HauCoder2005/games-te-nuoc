@@ -1,6 +1,5 @@
 import {
-  botName, dedupeName, MAX_PLAYERS, normalizeName, PUBLIC_FULL_WAIT,
-  PUBLIC_HALF_READY_WAIT, PUBLIC_MIN_HUMANS, START_COUNTDOWN,
+  botName, dedupeName, MAX_PLAYERS, normalizeName,
 } from '@te-nuoc/shared';
 import type { ErrorCode, RosterEntry, Team } from '@te-nuoc/shared';
 
@@ -13,12 +12,7 @@ export interface LobbySettings { teamSize: 4 | 5; scoreToWin: 5 | 10 | 15; botFi
 export interface NamedRosterEntry extends RosterEntry { name: string }
 export type LobbyPhase = 'lobby' | 'starting' | 'match';
 
-export function publicStartDecision(humans: number, ready: number, full: boolean): { countdown: number } | null {
-  if (humans >= PUBLIC_MIN_HUMANS && ready === humans) return { countdown: START_COUNTDOWN };
-  if (full || humans === MAX_PLAYERS) return { countdown: PUBLIC_FULL_WAIT };
-  if (humans >= PUBLIC_MIN_HUMANS && ready * 2 >= humans) return { countdown: PUBLIC_HALF_READY_WAIT };
-  return null;
-}
+export function publicCanStart(humans: number): boolean { return humans === MAX_PLAYERS; }
 
 function clampVariant(variant: unknown): number | null {
   return typeof variant === 'number' && Number.isInteger(variant) && variant >= 0 && variant < 5 ? variant : null;
@@ -27,13 +21,15 @@ function clampVariant(variant: unknown): number | null {
 export class LobbyModel {
   hostId: string | null = null;
   members: LobbyMember[] = [];
-  settings: LobbySettings = { teamSize: 5, scoreToWin: 10, botFill: true };
+  settings: LobbySettings;
   phase: LobbyPhase = 'lobby';
   private nextJoinOrder = 0;
   private activeRoster: NamedRosterEntry[] = [];
   private readonly preferredVariants = new Map<string, number>();
 
-  constructor(readonly mode: 'public' | 'private') {}
+  constructor(readonly mode: 'public' | 'private') {
+    this.settings = { teamSize: 5, scoreToWin: 10, botFill: mode === 'private' };
+  }
 
   private firstFreeSlot(): number {
     for (let slot = 0; slot < MAX_PLAYERS; slot++) {
