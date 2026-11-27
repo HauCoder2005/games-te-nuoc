@@ -39,13 +39,21 @@ export function startPractice(root: HTMLElement): () => void {
   const world = createMatch(Math.floor(Math.random() * 0xffffffff), roster, { teamSize: 4, scoreToWin: 10 });
   const teams = new Map(roster.map((entry) => [entry.slot, entry.team]));
   const memories = new Map(roster.slice(1).map((entry) => [entry.slot, createBotMemory(entry.slot + 1)]));
-  const source = createInput(window, canvas, (cx, cy) => {
-    const bounds = canvas.getBoundingClientRect();
-    return {
-      x: Math.max(0, Math.min(VIEW_W, (cx - bounds.left) * VIEW_W / bounds.width)),
-      y: Math.max(0, Math.min(VIEW_H, (cy - bounds.top) * VIEW_H / bounds.height)),
-    };
-  });
+  const source = createInput(
+    window,
+    canvas,
+    (cx, cy) => {
+      const bounds = canvas.getBoundingClientRect();
+      return {
+        x: Math.max(0, Math.min(VIEW_W, (cx - bounds.left) * VIEW_W / bounds.width)),
+        y: Math.max(0, Math.min(VIEW_H, (cy - bounds.top) * VIEW_H / bounds.height)),
+      };
+    },
+    () => {
+      const own = world.players.find((p) => p.slot === 0);
+      return own ? { x: own.x, y: own.y } : null;
+    },
+  );
   let renderer = createRenderer(canvas, overlay, null);
   let stopped = false;
   let request = 0;

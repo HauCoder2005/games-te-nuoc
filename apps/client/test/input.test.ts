@@ -54,13 +54,18 @@ it('creates mobile touch action buttons on touch devices and increments throw/da
   wrapper.append(canvas);
   document.body.append(wrapper);
   Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
-  const source = createInput(window, canvas, (x, y) => ({ x, y }));
+  const source = createInput(window, canvas, (x, y) => ({ x, y }), () => ({ x: 320, y: 199 }));
   sources.push(source);
 
   const throwBtn = wrapper.querySelector<HTMLButtonElement>('.touch-btn-throw');
   const dashBtn = wrapper.querySelector<HTMLButtonElement>('.touch-btn-dash');
   expect(throwBtn).not.toBeNull();
   expect(dashBtn).not.toBeNull();
+  // Buttons use SVG icons (dual swords & lightning bolt) instead of text
+  expect(throwBtn?.querySelector('svg')).not.toBeNull();
+  expect(dashBtn?.querySelector('svg')).not.toBeNull();
+  expect(throwBtn?.textContent).toBe('');
+  expect(dashBtn?.textContent).toBe('');
 
   throwBtn?.click();
   dashBtn?.click();

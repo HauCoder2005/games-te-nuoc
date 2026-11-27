@@ -323,6 +323,50 @@ export function createRenderer(canvas: HTMLCanvasElement, overlay: HTMLCanvasEle
         context.beginPath(); context.ellipse(player.x, player.y + 1, 7, 3, 0, 0, Math.PI * 2); context.fill();
         context.fillStyle = TEAM_COLORS[player.team];
         context.beginPath(); context.ellipse(player.x, player.y, 6, 2.5, 0, 0, Math.PI * 2); context.fill();
+
+        // Directional ring & rotating aim arrow under player feet
+        const isViewer = player.slot === viewerSlot;
+        const viewerTeam = view.players.find((p) => p.slot === viewerSlot)?.team ?? null;
+        if (isViewer || viewerTeam === null || player.team === viewerTeam) {
+          const adx = player.aimX - player.x;
+          const ady = player.aimY - player.y;
+          const angle = Math.hypot(adx, ady) > 1
+            ? Math.atan2(ady, adx)
+            : (player.facing === -1 ? Math.PI : 0);
+
+          context.save();
+          context.translate(player.x, player.y);
+
+          // Glowing ring under feet
+          context.strokeStyle = isViewer ? '#FFE066' : TEAM_COLORS[player.team];
+          context.lineWidth = isViewer ? 1.6 : 1;
+          context.beginPath();
+          context.arc(0, 0, isViewer ? 11 : 9, 0, Math.PI * 2);
+          context.stroke();
+
+          // Rotating directional pointer arrow around the ring
+          context.rotate(angle);
+          const arrowDist = isViewer ? 14 : 11.5;
+          context.fillStyle = isViewer ? '#FFE066' : TEAM_COLORS[player.team];
+          context.strokeStyle = '#181020';
+          context.lineWidth = 1;
+          context.beginPath();
+          context.moveTo(arrowDist + 5, 0);
+          context.lineTo(arrowDist - 2, -4);
+          context.lineTo(arrowDist - 0.5, 0);
+          context.lineTo(arrowDist - 2, 4);
+          context.closePath();
+          context.fill();
+          context.stroke();
+
+          // Short aim guide dots for own character
+          if (isViewer) {
+            context.fillStyle = 'rgba(255, 224, 102, 0.75)';
+            context.fillRect(arrowDist + 8, -0.75, 2, 1.5);
+            context.fillRect(arrowDist + 13, -0.75, 2, 1.5);
+          }
+          context.restore();
+        }
       }
       const entities: { y: number; draw: () => void }[] = [
         { y: RAFT_CENTER.y, draw: () => drawPillarTower(context, view) },

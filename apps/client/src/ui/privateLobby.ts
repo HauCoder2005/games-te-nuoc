@@ -229,11 +229,20 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
     renderer = createRenderer(canvas, overlay, null);
     removeMenus = attachGameMenus(panel, () => world, () => new Map([...room.state.game.players.values()].map((player) => [player.slot, player.name])),
       () => { dispose(); showHome(root); });
-    input = createInput(window, canvas, (cx, cy) => {
-      const bounds = canvas!.getBoundingClientRect();
-      return { x: Math.max(0, Math.min(VIEW_W, (cx - bounds.left) * VIEW_W / bounds.width)),
-        y: Math.max(0, Math.min(VIEW_H, (cy - bounds.top) * VIEW_H / bounds.height)) };
-    });
+    input = createInput(
+      window,
+      canvas,
+      (cx, cy) => {
+        const bounds = canvas!.getBoundingClientRect();
+        return { x: Math.max(0, Math.min(VIEW_W, (cx - bounds.left) * VIEW_W / bounds.width)),
+          y: Math.max(0, Math.min(VIEW_H, (cy - bounds.top) * VIEW_H / bounds.height)) };
+      },
+      () => {
+        const ownSlot = room.state.lobby.players.get(room.sessionId)?.slot ?? -1;
+        const own = world?.players.find((p) => p.slot === ownSlot);
+        return own ? { x: own.x, y: own.y } : null;
+      },
+    );
     void loadSprites('/assets/manifest.json').then((bank) => {
       if (!stopped && canvas && overlay) renderer = createRenderer(canvas, overlay, bank);
     }).catch(() => { /* Shape fallback. */ });

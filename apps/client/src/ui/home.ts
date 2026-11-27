@@ -4,6 +4,7 @@ import { connect, mapJoinError, parseRoute } from '../net/colyseus';
 import { showRoom } from './privateLobby';
 import { createCharacterAvatar } from './avatar';
 import { createIconButton } from './icons';
+import { ensureFloatingFullscreenButton } from './fullscreen';
 import {
   formatStarIcons, getActiveAccount, getLeaderboard, getPlayerStars,
   getPlayerWins, getRankTier, loginAccount, logoutAccount,
@@ -22,6 +23,7 @@ function getStoredVariant(): number {
 }
 
 export function showHome(root: HTMLElement): void {
+  ensureFloatingFullscreenButton();
   root.replaceChildren();
   const layout = document.createElement('div');
   layout.className = 'home-layout';

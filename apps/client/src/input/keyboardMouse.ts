@@ -1,4 +1,6 @@
+import { BALLOON_RANGE_MAX } from '@te-nuoc/shared';
 import type { InputFrame } from '@te-nuoc/shared';
+import { createDashBoltIcon, createDualSwordsIcon } from '../ui/fullscreen';
 
 export interface InputSource { sample(): InputFrame; destroy(): void }
 
@@ -6,11 +8,13 @@ export function createInput(
   target: Window,
   canvas: HTMLCanvasElement,
   toWorld: (cx: number, cy: number) => { x: number; y: number },
+  getOwnPos?: () => { x: number; y: number } | null,
 ): InputSource {
   const held = new Set<string>();
   let seq = 0; let th = 0; let da = 0;
   let aim = { x: 320, y: 199 };
   let touchMove = { mx: 0, my: 0 };
+  let joyAimDir: { dx: number; dy: number } | null = null;
   const movement = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight']);
 
   const down = (event: KeyboardEvent) => {
@@ -24,7 +28,10 @@ export function createInput(
     touchMove = { mx: 0, my: 0 };
   };
   const visibility = () => { if (target.document.hidden) clear(); };
-  const mouse = (event: MouseEvent) => { aim = toWorld(event.clientX, event.clientY); };
+  const mouse = (event: MouseEvent) => {
+    joyAimDir = null;
+    aim = toWorld(event.clientX, event.clientY);
+  };
   const click = (event: MouseEvent) => {
     mouse(event);
     if (event.button === 0) th++;
@@ -32,17 +39,27 @@ export function createInput(
   };
   const contextMenu = (event: MouseEvent) => event.preventDefault();
 
-  // Mobile Touch Controls (Virtual Joystick left + Aim/Throw pad & Dash button right)
+  // Mobile Touch Controls (Circular Virtual Joystick left + Circular Icon Buttons right)
   let touchUi: HTMLDivElement | null = null;
   let joyTouchId: number | null = null;
   let joyOrigin = { x: 0, y: 0 };
-  const JOY_MAX_R = 42;
+  const JOY_MAX_R = 44;
 
   const isTouchDevice = (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0)
     || 'ontouchstart' in target;
 
   const parent = canvas.parentElement;
   let joyKnob: HTMLDivElement | null = null;
+
+  const updateAimFromDir = (dx: number, dy: number) => {
+    const own = getOwnPos?.();
+    const ox = own?.x ?? 320;
+    const oy = own?.y ?? 199;
+    aim = {
+      x: Math.max(0, Math.min(640, ox + dx * (BALLOON_RANGE_MAX * 0.75))),
+      y: Math.max(0, Math.min(360, oy + dy * (BALLOON_RANGE_MAX * 0.75))),
+    };
+  };
 
   const onCanvasTouchStart = (event: TouchEvent) => {
     for (let i = 0; i < event.changedTouches.length; i++) {
@@ -51,6 +68,7 @@ export function createInput(
       const relX = t.clientX - bounds.left;
       if (relX >= bounds.width * 0.42) {
         event.preventDefault();
+        joyAimDir = null;
         aim = toWorld(t.clientX, t.clientY);
         th++;
       }
@@ -61,6 +79,7 @@ export function createInput(
     for (let i = 0; i < event.changedTouches.length; i++) {
       const t = event.changedTouches[i];
       if (t.identifier === joyTouchId) continue;
+      joyAimDir = null;
       aim = toWorld(t.clientX, t.clientY);
     }
   };
@@ -86,6 +105,10 @@ export function createInput(
       const nx = dist > 4 ? dx / dist : 0;
       const ny = dist > 4 ? dy / dist : 0;
       touchMove = { mx: nx, my: ny };
+      if (nx !== 0 || ny !== 0) {
+        joyAimDir = { dx: nx, dy: ny };
+        updateAimFromDir(nx, ny);
+      }
       if (joyKnob) {
         joyKnob.style.transform = `translate(${Math.round(nx * clamped)}px, ${Math.round(ny * clamped)}px)`;
       }
@@ -128,31 +151,39 @@ export function createInput(
     const actionButtons = target.document.createElement('div');
     actionButtons.className = 'touch-action-buttons';
 
+    // Throw button: Circular with Dual Swords icon (no text)
     const throwBtn = target.document.createElement('button');
     throwBtn.type = 'button';
     throwBtn.className = 'touch-btn touch-btn-throw';
-    throwBtn.textContent = 'NÉM';
+    throwBtn.setAttribute('aria-label', 'Ném bóng nước');
+    throwBtn.append(createDualSwordsIcon());
     throwBtn.addEventListener('touchstart', (event) => {
       event.preventDefault();
       event.stopPropagation();
+      if (joyAimDir) updateAimFromDir(joyAimDir.dx, joyAimDir.dy);
       th++;
     }, { passive: false });
     throwBtn.addEventListener('click', (event) => {
       event.preventDefault();
+      if (joyAimDir) updateAimFromDir(joyAimDir.dx, joyAimDir.dy);
       th++;
     });
 
+    // Dash button: Circular with Lightning Bolt Dash icon (no text)
     const dashBtn = target.document.createElement('button');
     dashBtn.type = 'button';
     dashBtn.className = 'touch-btn touch-btn-dash';
-    dashBtn.textContent = 'HÚC';
+    dashBtn.setAttribute('aria-label', 'Húc tốc biến');
+    dashBtn.append(createDashBoltIcon());
     dashBtn.addEventListener('touchstart', (event) => {
       event.preventDefault();
       event.stopPropagation();
+      if (joyAimDir) updateAimFromDir(joyAimDir.dx, joyAimDir.dy);
       da++;
     }, { passive: false });
     dashBtn.addEventListener('click', (event) => {
       event.preventDefault();
+      if (joyAimDir) updateAimFromDir(joyAimDir.dx, joyAimDir.dy);
       da++;
     });
 
@@ -179,7 +210,15 @@ export function createInput(
       const mx = kbMx !== 0 || kbMy !== 0 ? kbMx : touchMove.mx;
       const my = kbMx !== 0 || kbMy !== 0 ? kbMy : touchMove.my;
       const length = Math.hypot(mx, my);
-      return { seq, mx: length ? mx / length : 0, my: length ? my / length : 0, ax: aim.x, ay: aim.y, th, da };
+      const normMx = length ? mx / length : 0;
+      const normMy = length ? my / length : 0;
+      if (joyAimDir) {
+        updateAimFromDir(joyAimDir.dx, joyAimDir.dy);
+      } else if (normMx !== 0 || normMy !== 0) {
+        // Also update aim direction if moving on touch without an explicit mouse aim
+        if (isTouchDevice) updateAimFromDir(normMx, normMy);
+      }
+      return { seq, mx: normMx, my: normMy, ax: aim.x, ay: aim.y, th, da };
     },
     destroy() {
       target.removeEventListener('keydown', down);

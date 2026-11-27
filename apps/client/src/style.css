@@ -21,15 +21,39 @@ body { margin: 0; min-width: 320px; overscroll-behavior: none; -webkit-user-sele
   .rotate-overlay { display: flex; }
 }
 
-/* Mobile virtual joystick & action buttons */
+/* Mobile virtual joystick & circular action buttons */
 .mobile-touch-controls { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
-.touch-joystick-zone { position: absolute; left: 18px; bottom: 38px; width: 120px; height: 120px; pointer-events: auto; display: flex; align-items: center; justify-content: center; touch-action: none; }
-.touch-joystick-base { width: 96px; height: 96px; background: rgba(35, 22, 41, 0.55); border: 3px solid rgba(255, 207, 68, 0.75); display: flex; align-items: center; justify-content: center; }
-.touch-joystick-knob { width: 42px; height: 42px; background: rgba(255, 207, 68, 0.9); border: 3px solid #181020; box-shadow: 2px 2px 0 #140c1c; }
-.touch-action-buttons { position: absolute; right: 18px; bottom: 42px; display: flex; gap: 14px; align-items: flex-end; pointer-events: auto; }
-.touch-btn { width: 64px; height: 64px; padding: 0; font-size: 15px; font-weight: 900; display: flex; align-items: center; justify-content: center; opacity: 0.88; touch-action: none; }
-.touch-btn-throw { width: 74px; height: 74px; background: #e53b3b; color: #ffffff; box-shadow: inset 2px 2px 0 #ff8585, inset -2px -2px 0 #9e1f1f, 4px 4px 0 #140c1c; }
-.touch-btn-dash { background: #3b8bf0; color: #ffffff; box-shadow: inset 2px 2px 0 #78c6ff, inset -2px -2px 0 #1f579e, 4px 4px 0 #140c1c; }
+.touch-joystick-zone { position: absolute; left: 22px; bottom: 36px; width: 132px; height: 132px; pointer-events: auto; display: flex; align-items: center; justify-content: center; touch-action: none; }
+.touch-joystick-base { width: 108px; height: 108px; border-radius: 50%; background: radial-gradient(circle, rgba(49, 34, 58, 0.65) 0%, rgba(24, 16, 32, 0.78) 100%); border: 3px solid rgba(255, 224, 102, 0.8); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55), inset 0 0 10px rgba(255, 207, 68, 0.25); display: flex; align-items: center; justify-content: center; }
+.touch-joystick-knob { width: 46px; height: 46px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff3b0, #ffcf44 65%, #d99b16 100%); border: 3px solid #181020; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6); }
+.touch-action-buttons { position: absolute; right: 24px; bottom: 40px; display: flex; gap: 16px; align-items: flex-end; pointer-events: auto; }
+.touch-btn { border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center; opacity: 0.92; touch-action: none; border: 3px solid #181020; }
+.touch-btn svg { width: 52%; height: 52%; pointer-events: none; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.45)); }
+.touch-btn-throw { width: 82px; height: 82px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ff7a7a, #e53b3b 65%, #9e1f1f 100%); color: #ffffff; border-color: #ffe066; box-shadow: 0 5px 14px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.4); }
+.touch-btn-dash { width: 64px; height: 64px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #78c6ff, #3b8bf0 65%, #1d4d8f 100%); color: #ffe066; border-color: #a8dcff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55), inset 0 2px 4px rgba(255, 255, 255, 0.35); }
+.touch-btn:active { transform: scale(0.92); }
+
+/* YouTube-style Fullscreen toggle button to hide mobile browser address bar */
+.yt-fullscreen-btn {
+  position: fixed;
+  right: 12px;
+  top: 12px;
+  z-index: 9000;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  padding: 8px;
+  background: rgba(24, 16, 32, 0.85);
+  color: #ffe066;
+  border: 2px solid #ffd700;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.yt-fullscreen-btn svg { width: 22px; height: 22px; }
+.yt-fullscreen-btn:hover { background: #31223a; }
+.yt-fullscreen-btn.is-fullscreen { border-color: #2ecc71; color: #7cf29c; }
 
 /* Pixel-art layout & containers */
 .home-layout { width: min(1040px, 96vw); display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr); gap: 22px; align-items: stretch; }
