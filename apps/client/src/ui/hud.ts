@@ -37,27 +37,31 @@ export function updateHud(root: HTMLElement, world: World, names: ReadonlyMap<nu
   if (options.roomLabel) {
     const label = document.createElement('div'); label.className = 'room-label'; label.textContent = options.roomLabel; root.append(label);
   }
+
+  // Single compact top bar inside the non-playable sky band (y: 0..48px) so nothing covers the raft
+  const topBar = document.createElement('div');
+  topBar.className = 'hud-top-bar';
+
   const score = document.createElement('div');
   score.className = 'score';
   const red = document.createElement('span'); red.className = 'score-red'; red.textContent = `ĐỎ ${world.score[0]}`;
-  const separator = document.createElement('span'); separator.className = 'score-separator'; separator.textContent = ':';
-  const blue = document.createElement('span'); blue.className = 'score-blue'; blue.textContent = `${world.score[1]} XANH`;
-  score.append(red, separator, blue);
-  const clock = document.createElement('div');
-  clock.className = 'clock';
+  const clock = document.createElement('span');
+  clock.className = 'clock score-separator';
   clock.textContent = formatClock(world.timeLeft);
+  const blue = document.createElement('span'); blue.className = 'score-blue'; blue.textContent = `${world.score[1]} XANH`;
+  score.append(red, clock, blue);
 
   const pillarHud = document.createElement('div');
   pillarHud.className = 'pillar-hud';
   const pillarText = document.createElement('div');
   pillarText.className = 'pillar-text';
   const pct = Math.round(world.pillar.progress * 100);
-  const roundBadge = `HIỆP ${world.pillar.round}/${world.pillar.maxRounds}`;
+  const roundBadge = `H${world.pillar.round}/${world.pillar.maxRounds}`;
   if (world.pillar.contested) {
     pillarText.textContent = `${roundBadge} · TRANH CHẤP`;
   } else if (world.pillar.capturingTeam !== null && world.pillar.progress > 0) {
     const teamName = world.pillar.capturingTeam === 0 ? 'ĐỎ' : 'XANH';
-    pillarText.textContent = `${roundBadge} · ${teamName} CHIẾM ${pct}%`;
+    pillarText.textContent = `${roundBadge} · ${teamName} ${pct}%`;
   } else if (world.pillar.owner !== null) {
     const teamName = world.pillar.owner === 0 ? 'ĐỎ' : 'XANH';
     pillarText.textContent = `${roundBadge} · CỜ ${teamName}`;
@@ -73,12 +77,14 @@ export function updateHud(root: HTMLElement, world: World, names: ReadonlyMap<nu
   pillarBar.append(pillarFill);
   pillarHud.append(pillarText, pillarBar);
 
+  topBar.append(score, pillarHud);
+
   if (options.banner) {
     const banner = document.createElement('div'); banner.className = 'banner'; banner.textContent = options.banner; root.append(banner);
   }
   const messages = document.createElement('div');
   messages.className = 'feed';
-  for (const text of feed.slice(-4)) {
+  for (const text of feed.slice(-2)) {
     const line = document.createElement('div');
     line.textContent = text;
     messages.append(line);
@@ -100,5 +106,5 @@ export function updateHud(root: HTMLElement, world: World, names: ReadonlyMap<nu
     chip.append(face, name, stats);
     chips.append(chip);
   }
-  root.append(score, clock, pillarHud, messages, chips);
+  root.append(topBar, messages, chips);
 }

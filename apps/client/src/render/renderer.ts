@@ -265,23 +265,26 @@ export function createRenderer(canvas: HTMLCanvasElement, overlay: HTMLCanvasEle
     if (winW === lastWinW && winH === lastWinH && nextRatio === pixelRatio) return;
     lastWinW = winW; lastWinH = winH; pixelRatio = nextRatio;
 
-    const isMobileOrCompact = (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0)
-      || winW <= 1024 || winH <= 600;
+    const isMobileOrTouch = (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0)
+      || winW <= 1024 || winH <= 640;
 
     let width: number;
     let height: number;
-    if (isMobileOrCompact) {
-      // Full-bleed edge-to-edge screen coverage on mobile landscape
-      width = winW;
-      height = winH;
+    if (isMobileOrTouch) {
+      // Fill the full height on mobile landscape; cap horizontal stretch ratio so circles/characters never distort
+      const fitScale = Math.min(winW / VIEW_W, winH / VIEW_H);
+      height = Math.round(VIEW_H * fitScale);
+      const maxAspectW = Math.round(height * (20 / 9));
+      width = Math.min(winW, Math.max(Math.round(VIEW_W * fitScale), maxAspectW));
       scaleX = width / VIEW_W;
       scaleY = height / VIEW_H;
     } else {
-      const s = integerScale(winW, winH);
-      scaleX = s;
-      scaleY = s;
-      width = VIEW_W * s;
-      height = VIEW_H * s;
+      // Smooth proportional fit on any large monitor (1080p, 2K, 4K, ultrawide) without breaking or clipping
+      const fitScale = Math.min(winW / VIEW_W, winH / VIEW_H);
+      scaleX = fitScale;
+      scaleY = fitScale;
+      width = Math.round(VIEW_W * fitScale);
+      height = Math.round(VIEW_H * fitScale);
     }
 
     canvas.parentElement?.style.setProperty('width', `${width}px`);
