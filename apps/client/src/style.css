@@ -17,6 +17,20 @@ body { margin: 0; min-width: 320px; }
 .home-box-name { border-color: #ffcf44; }
 .home-box-room { border-color: #6ec1ff; }
 .auth-grid { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+.auth-container { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+.auth-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.auth-tabs button { background: #231629; color: #b9b0c4; border: 2px solid #594466; padding: 8px 12px; font-size: 15px; }
+.auth-tabs button.active { background: #ffcf44; color: #231629; border-color: #ffe066; }
+.auth-form { display: flex; flex-direction: column; gap: 10px; background: #26192f; padding: 12px; border-radius: 8px; border: 1px solid #4e3a5e; }
+.auth-two-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 600px) { .auth-two-cols { grid-template-columns: 1fr; } }
+.auth-submit-full { width: 100%; margin-top: 2px; }
+.auth-logged-card { display: flex; flex-direction: column; gap: 10px; background: #26192f; padding: 12px 14px; border-radius: 8px; border: 2px solid #2ecc71; }
+.auth-logged-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.auth-user-summary { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; }
+.auth-username-tag { font-size: 17px; font-weight: 900; color: #7cf29c; }
+.auth-saved-hint { font-size: 11px; font-weight: 600; color: #b9e6ff; }
+.auth-logout-btn { background: #472838; color: #ff9eaa; border-color: #ff6b8b; padding: 6px 12px; font-size: 14px; }
 .auth-pass-row { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: stretch; }
 .auth-pass-row button { white-space: nowrap; padding: 9px 14px; font-size: 15px; }
 .auth-status { font-size: 13px; font-weight: 700; color: #7cf29c; text-align: left; background: #231629; padding: 6px 10px; border-radius: 6px; border: 1px solid #453255; }

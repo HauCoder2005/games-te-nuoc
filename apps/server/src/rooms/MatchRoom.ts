@@ -16,7 +16,7 @@ import { RateLimiter } from './rateLimit.js';
 
 export const roomCreationLimit = new RateLimiter(MAX_ROOMS_PER_IP_PER_MIN);
 
-interface JoinOptions { mode: 'public' | 'private'; name: string; v: number; variant?: number }
+interface JoinOptions { mode: 'public' | 'private'; name: string; username?: string; v: number; variant?: number }
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -123,8 +123,8 @@ export class MatchRoom extends Room<{ state: RoomState }> {
     if (!name) throw new ServerError(400, ERROR_TEXT.bad_request);
     try {
       const member = this.world
-        ? this.lobby.replaceBotWith(client.sessionId, name, options.variant)
-        : this.lobby.join(client.sessionId, name, options.variant);
+        ? this.lobby.replaceBotWith(client.sessionId, name, options.variant, options.username)
+        : this.lobby.join(client.sessionId, name, options.variant, options.username);
       if (!member) throw new Error('full');
       if (this.world) {
         const player = this.world.players.find((candidate) => candidate.slot === member.slot);
@@ -214,6 +214,7 @@ export class MatchRoom extends Room<{ state: RoomState }> {
       }
       schemaMember.sessionId = member.sessionId;
       schemaMember.slot = member.slot;
+      schemaMember.username = member.username;
       schemaMember.name = member.name;
       schemaMember.team = member.team;
       schemaMember.variant = member.variant;

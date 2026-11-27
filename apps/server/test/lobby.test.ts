@@ -81,8 +81,10 @@ it('shuffle keeps teams balanced and all human names', () => {
 });
 it('respects player chosen character variant while keeping team uniform', () => {
   const lobby = new LobbyModel('private');
-  const member = lobby.join('a', 'Tèo', 3);
+  const member = lobby.join('a', 'Tèo Bóng', 3, 'teovip01');
   expect(member.variant).toBe(3);
+  expect(member.username).toBe('teovip01');
+  expect(member.name).toBe('Tèo Bóng');
   expect(member.team).toBe(0);
   expect(lobby.setTeam('a', 1)).toBeNull();
   expect(lobby.members[0].team).toBe(1);

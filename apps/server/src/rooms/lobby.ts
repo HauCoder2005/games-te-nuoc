@@ -5,7 +5,7 @@ import {
 import type { ErrorCode, RosterEntry, Team } from '@te-nuoc/shared';
 
 export interface LobbyMember {
-  sessionId: string; slot: number; name: string; team: Team; variant: number;
+  sessionId: string; slot: number; username: string; name: string; team: Team; variant: number;
   joinOrder: number; ready: boolean; connected: boolean;
 }
 
@@ -56,10 +56,11 @@ export class LobbyModel {
     return [this.members.filter((member) => member.team === 0).length, this.members.filter((member) => member.team === 1).length];
   }
 
-  join(sessionId: string, rawName: string, preferredVariant?: unknown): LobbyMember {
+  join(sessionId: string, rawName: string, preferredVariant?: unknown, rawUsername?: unknown): LobbyMember {
     if (this.members.some((member) => member.sessionId === sessionId)) throw new Error('bad_request');
     const normalized = normalizeName(rawName);
     if (!normalized) throw new Error('bad_request');
+    const normalizedUsername = normalizeName(rawUsername) ?? normalized;
     const counts = this.counts();
     const preferred: Team = counts[0] <= counts[1] ? 0 : 1;
     const team: Team = counts[preferred] < this.settings.teamSize ? preferred : preferred === 0 ? 1 : 0;
@@ -68,6 +69,7 @@ export class LobbyModel {
     if (chosenVariant !== null) this.preferredVariants.set(sessionId, chosenVariant);
     const member: LobbyMember = {
       sessionId, slot: this.firstFreeSlot(),
+      username: normalizedUsername,
       name: dedupeName(normalized, this.members.map((existing) => existing.name)),
       team, variant: chosenVariant ?? this.firstFreeVariant(team), joinOrder: this.nextJoinOrder++,
       ready: false, connected: true,
@@ -169,10 +171,11 @@ export class LobbyModel {
     return roster;
   }
 
-  replaceBotWith(sessionId: string, name: string, preferredVariant?: unknown): LobbyMember | null {
+  replaceBotWith(sessionId: string, name: string, preferredVariant?: unknown, rawUsername?: unknown): LobbyMember | null {
     if (this.mode !== 'private' || this.phase !== 'match') return null;
     const normalized = normalizeName(name);
     if (!normalized || this.members.some((member) => member.sessionId === sessionId)) return null;
+    const normalizedUsername = normalizeName(rawUsername) ?? normalized;
     const counts = this.counts();
     const team: Team = counts[0] <= counts[1] ? 0 : 1;
     if (counts[team] >= this.settings.teamSize) return null;
@@ -189,6 +192,7 @@ export class LobbyModel {
     }
     const member: LobbyMember = {
       sessionId, slot, team, variant,
+      username: normalizedUsername,
       name: dedupeName(normalized, this.members.map((existing) => existing.name)),
       joinOrder: this.nextJoinOrder++, ready: false, connected: true,
     };

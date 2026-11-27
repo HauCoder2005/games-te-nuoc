@@ -2,10 +2,12 @@
 import { describe, expect, it } from 'vitest';
 import { CHARACTER_VARIANTS } from '@te-nuoc/shared';
 import { showHome } from '../src/ui/home';
-import { addWinStar, getActiveAccount, getPlayerStars, getRankTier, registerOrLoginAccount } from '../src/ui/rank';
+import { addWinStar, getActiveAccount, getPlayerStars, getRankTier } from '../src/ui/rank';
 
-describe('home screen boxes, left leaderboard, quick auth, and Lucide button icons', () => {
+describe('home screen boxes, right leaderboard, login & register forms, and Lucide icons', () => {
   it('places leaderboard in a separate right panel and adds Lucide SVG icons to buttons', () => {
+    localStorage.clear();
+    document.cookie = 'aqua_blast_session=; path=/; max-age=0';
     const root = document.createElement('div');
     location.hash = '#/r/khvt';
     showHome(root);
@@ -37,8 +39,9 @@ describe('home screen boxes, left leaderboard, quick auth, and Lucide button ico
     }
   });
 
-  it('supports quick username/password registration and saves rank stars to leaderboard', () => {
+  it('switches to dedicated registration form (username, gameName, password, confirmPassword) and persists login in localStorage and cookie', () => {
     localStorage.clear();
+    document.cookie = 'aqua_blast_session=; path=/; max-age=0';
     const root = document.createElement('div');
     showHome(root);
 
@@ -47,12 +50,43 @@ describe('home screen boxes, left leaderboard, quick auth, and Lucide button ico
     cards[2].click();
     expect(localStorage.getItem('te-nuoc-variant')).toBe('2');
 
-    const reg = registerOrLoginAccount('TèoVip', 'pass123', 2);
-    expect(reg.ok).toBe(true);
-    expect(getActiveAccount()?.username).toBe('TèoVip');
+    // Click "Đăng ký tài khoản" tab
+    const tabButtons = root.querySelectorAll<HTMLButtonElement>('.auth-tabs button');
+    expect(tabButtons).toHaveLength(2);
+    tabButtons[1].click();
 
-    const wrong = registerOrLoginAccount('TèoVip', 'wrong', 2);
-    expect(wrong.ok).toBe(false);
+    const regForm = root.querySelector('.auth-form-register');
+    expect(regForm).not.toBeNull();
+
+    const inputs = regForm!.querySelectorAll<HTMLInputElement>('input');
+    expect(inputs).toHaveLength(4);
+    const [usernameInput, gameNameInput, passInput, confirmInput] = inputs;
+
+    usernameInput.value = 'teovip01';
+    gameNameInput.value = 'Tèo Siêu Cấp';
+    passInput.value = 'pass123';
+    confirmInput.value = 'mismatch';
+
+    const submitRegBtn = regForm!.querySelector<HTMLButtonElement>('.auth-submit-full')!;
+    submitRegBtn.click();
+    expect(root.querySelector('.error')?.textContent).toContain('không khớp');
+    expect(getActiveAccount()).toBeNull();
+
+    confirmInput.value = 'pass123';
+    submitRegBtn.click();
+
+    // Logged in card shown immediately & persisted in localStorage + cookie
+    expect(getActiveAccount()?.username).toBe('teovip01');
+    expect(getActiveAccount()?.gameName).toBe('Tèo Siêu Cấp');
+    expect(document.cookie).toContain('aqua_blast_session=teovip01');
+    expect(root.querySelector('.auth-logged-card')).not.toBeNull();
+    expect(root.querySelector('.auth-username-tag')?.textContent).toBe('@teovip01');
+
+    // Re-mounting home screen remembers login without needing to log in again
+    const root2 = document.createElement('div');
+    showHome(root2);
+    expect(root2.querySelector('.auth-logged-card')).not.toBeNull();
+    expect(root2.querySelector('.auth-username-tag')?.textContent).toBe('@teovip01');
 
     expect(getPlayerStars()).toBe(0);
     const afterWin = addWinStar();

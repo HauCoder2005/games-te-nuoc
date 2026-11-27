@@ -3,7 +3,7 @@ import { ERROR_TEXT, normalizeRoomCode, PROTOCOL_VERSION, ROOM_CODE_ALPHABET, RO
 import type { ErrorCode, PlayerStatus, Team } from '@te-nuoc/shared';
 
 export interface NetLobbyPlayer {
-  sessionId: string; slot: number; name: string; team: Team; variant: number;
+  sessionId: string; slot: number; username?: string; name: string; team: Team; variant: number;
   isBot: boolean; ready: boolean; connected: boolean;
 }
 export interface NetGamePlayer {
@@ -54,16 +54,16 @@ export function mapJoinError(error: unknown): string {
 export class GameClient {
   private readonly client: Client;
   constructor(url: string) { this.client = new Client(url); }
-  async createPrivate(name: string, variant = 0): Promise<GameRoom> {
-    return this.client.create<NetState>('match', { mode: 'private', name, variant, v: PROTOCOL_VERSION });
+  async createPrivate(name: string, variant = 0, username = name): Promise<GameRoom> {
+    return this.client.create<NetState>('match', { mode: 'private', name, username, variant, v: PROTOCOL_VERSION });
   }
-  async joinByCode(code: string, name: string, variant = 0): Promise<GameRoom> {
+  async joinByCode(code: string, name: string, variant = 0, username = name): Promise<GameRoom> {
     const normalized = normalizeRoomCode(code);
     if (!validRoomCode(normalized)) throw new Error(ERROR_TEXT.not_found);
-    return this.client.joinById<NetState>(normalized, { name, variant, v: PROTOCOL_VERSION });
+    return this.client.joinById<NetState>(normalized, { name, username, variant, v: PROTOCOL_VERSION });
   }
-  async quickMatch(name: string, variant = 0): Promise<GameRoom> {
-    return this.client.joinOrCreate<NetState>('match', { mode: 'public', name, variant, v: PROTOCOL_VERSION });
+  async quickMatch(name: string, variant = 0, username = name): Promise<GameRoom> {
+    return this.client.joinOrCreate<NetState>('match', { mode: 'public', name, username, variant, v: PROTOCOL_VERSION });
   }
 }
 

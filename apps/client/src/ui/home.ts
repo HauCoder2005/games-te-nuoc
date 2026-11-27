@@ -3,10 +3,11 @@ import { startPractice } from '../offline/practice';
 import { connect, mapJoinError, parseRoute } from '../net/colyseus';
 import { showRoom } from './privateLobby';
 import { createCharacterAvatar } from './avatar';
-import { createIconButton, setButtonContent } from './icons';
+import { createIconButton } from './icons';
 import {
   formatStarIcons, getActiveAccount, getLeaderboard, getPlayerStars,
-  getPlayerWins, getRankTier, registerOrLoginAccount,
+  getPlayerWins, getRankTier, loginAccount, logoutAccount,
+  registerAccount, registerOrLoginAccount, updateActiveAccountProfile,
 } from './rank';
 
 export function isTouchOnly(nav: { maxTouchPoints: number }, mq: (query: string) => boolean): boolean {
@@ -25,16 +26,16 @@ export function showHome(root: HTMLElement): void {
   const layout = document.createElement('div');
   layout.className = 'home-layout';
 
-  // Left separate panel: Leaderboard box
-  const leaderboardPanel = document.createElement('aside');
-  leaderboardPanel.className = 'home-leaderboard-panel home-box-leaderboard';
-
-  // Right main panel: Game controls & Auth/Character box + Room box
+  // Main left panel: Game controls & Auth/Character box + Room box
   const panel = document.createElement('main');
   panel.className = 'home';
   const title = document.createElement('h1');
   title.textContent = 'Aqua Blast';
   panel.append(title);
+
+  // Separate right panel: Leaderboard box
+  const leaderboardPanel = document.createElement('aside');
+  leaderboardPanel.className = 'home-leaderboard-panel home-box-leaderboard';
 
   if (isTouchOnly(navigator, (query) => window.matchMedia(query).matches)) {
     const notice = document.createElement('p');
@@ -44,8 +45,8 @@ export function showHome(root: HTMLElement): void {
     return;
   }
 
-  const activeAccount = getActiveAccount();
   let selectedVariant = getStoredVariant();
+  let authTab: 'login' | 'register' = 'login';
 
   const nameBox = document.createElement('section');
   nameBox.className = 'home-box home-box-name';
@@ -67,54 +68,196 @@ export function showHome(root: HTMLElement): void {
   updateRankBanner();
   rankBanner.append(rankBadge, rankStars);
 
-  // Quick Username & Password registration/login inside the account box
-  const authGrid = document.createElement('div');
-  authGrid.className = 'auth-grid';
-
-  const label = document.createElement('label');
-  label.textContent = 'Tên của bạn (Username)';
-  const name = document.createElement('input');
-  name.placeholder = 'Nhập Username (tối đa 12 ký tự)';
-  name.value = activeAccount?.username ?? localStorage.getItem('te-nuoc-name') ?? '';
-  label.append(name);
-
-  const passLabel = document.createElement('label');
-  passLabel.textContent = 'Mật khẩu (Đăng ký / Đăng nhập nhanh)';
-  const passRow = document.createElement('div');
-  passRow.className = 'auth-pass-row';
-  const password = document.createElement('input');
-  password.type = 'password';
-  password.className = 'auth-password-input';
-  password.placeholder = 'Mật khẩu (≥ 3 ký tự)';
-  password.value = activeAccount?.password ?? '123';
-
-  const authStatus = document.createElement('div');
-  authStatus.className = 'auth-status';
-  if (activeAccount) {
-    authStatus.textContent = `✅ Đã đăng nhập: ${activeAccount.username} (Đã lên Bảng Xếp Hạng)`;
-  } else {
-    authStatus.textContent = '💡 Nhập Username + Mật khẩu để ghi danh lên Bảng Xếp Hạng';
-  }
-
-  const authBtn = createIconButton('user-plus', activeAccount ? 'Cập nhật TK' : 'Đăng ký / Lưu TK', () => {
-    const res = registerOrLoginAccount(name.value, password.value, selectedVariant);
-    if (!res.ok) {
-      error.textContent = res.error;
-      return;
-    }
-    error.textContent = '';
-    name.value = res.account.username;
-    authStatus.textContent = res.created
-      ? `🎉 Đã tạo tài khoản "${res.account.username}" & đưa lên Bảng Xếp Hạng!`
-      : `✅ Đã đăng nhập tài khoản "${res.account.username}"!`;
-    setButtonContent(authBtn, 'check-circle', 'Đã lưu TK');
-    updateRankBanner();
+  // Master in-game display name input (kept in sync with logged-in user or registration form)
+  const gameNameInput = document.createElement('input');
+  gameNameInput.placeholder = 'Nhập tên trong game (tối đa 12 ký tự)';
+  gameNameInput.value = getActiveAccount()?.gameName ?? localStorage.getItem('te-nuoc-name') ?? '';
+  gameNameInput.addEventListener('input', () => {
+    gameNameInput.value = Array.from(gameNameInput.value).slice(0, MAX_NAME_LENGTH).join('');
+    updateActiveAccountProfile(gameNameInput.value, selectedVariant);
     renderLeaderboardRows();
   });
 
-  passRow.append(password, authBtn);
-  passLabel.append(passRow);
-  authGrid.append(label, passLabel);
+  const authContainer = document.createElement('div');
+  authContainer.className = 'auth-container';
+  const authStatus = document.createElement('div');
+  authStatus.className = 'auth-status';
+  const error = document.createElement('p');
+  error.className = 'error';
+
+  let loginUserInput = document.createElement('input');
+  let loginPassInput = document.createElement('input');
+  let regUserInput = document.createElement('input');
+  let regPassInput = document.createElement('input');
+  let regConfirmInput = document.createElement('input');
+
+  const renderAuthSection = () => {
+    authContainer.replaceChildren();
+    const currentAcc = getActiveAccount();
+
+    if (currentAcc) {
+      // Logged-in card: saved in localStorage + cookie so user does not need to re-login
+      const loggedBox = document.createElement('div');
+      loggedBox.className = 'auth-logged-card';
+
+      const loggedHeader = document.createElement('div');
+      loggedHeader.className = 'auth-logged-header';
+      const userSummary = document.createElement('div');
+      userSummary.className = 'auth-user-summary';
+      const userBadge = document.createElement('span');
+      userBadge.className = 'auth-username-tag';
+      userBadge.textContent = `@${currentAcc.username}`;
+      const savedHint = document.createElement('span');
+      savedHint.className = 'auth-saved-hint';
+      savedHint.textContent = 'Đã lưu phiên đăng nhập (LocalStorage & Cookie)';
+      userSummary.append(userBadge, savedHint);
+
+      const logoutBtn = createIconButton('log-out', 'Đăng xuất', () => {
+        logoutAccount();
+        authStatus.textContent = 'Đã đăng xuất tài khoản.';
+        updateRankBanner();
+        renderAuthSection();
+        renderLeaderboardRows();
+      });
+      logoutBtn.className = 'icon-btn auth-logout-btn';
+      loggedHeader.append(userSummary, logoutBtn);
+
+      const gameNameLabel = document.createElement('label');
+      gameNameLabel.textContent = 'Tên hiển thị trong game';
+      gameNameInput.value = currentAcc.gameName;
+      gameNameLabel.append(gameNameInput);
+
+      loggedBox.append(loggedHeader, gameNameLabel);
+      authContainer.append(loggedBox);
+      authStatus.textContent = `✅ Xin chào ${currentAcc.gameName} (@${currentAcc.username}) — Đã ghi danh Bảng Xếp Hạng!`;
+      return;
+    }
+
+    // Tabs to switch between Login form and Register form
+    const tabsBar = document.createElement('div');
+    tabsBar.className = 'auth-tabs';
+    const tabLoginBtn = createIconButton('log-in', 'Đăng nhập', () => {
+      authTab = 'login';
+      error.textContent = '';
+      renderAuthSection();
+    });
+    tabLoginBtn.classList.toggle('active', authTab === 'login');
+    const tabRegBtn = createIconButton('user-plus', 'Đăng ký tài khoản', () => {
+      authTab = 'register';
+      error.textContent = '';
+      renderAuthSection();
+    });
+    tabRegBtn.classList.toggle('active', authTab === 'register');
+    tabsBar.append(tabLoginBtn, tabRegBtn);
+    authContainer.append(tabsBar);
+
+    if (authTab === 'login') {
+      const form = document.createElement('div');
+      form.className = 'auth-form auth-form-login';
+
+      const userLabel = document.createElement('label');
+      userLabel.textContent = 'Tên trong game / Username';
+      loginUserInput = gameNameInput;
+      loginUserInput.placeholder = 'Nhập Username hoặc Tên trong game';
+      userLabel.append(loginUserInput);
+
+      const passLabel = document.createElement('label');
+      passLabel.textContent = 'Mật khẩu';
+      const passRow = document.createElement('div');
+      passRow.className = 'auth-pass-row';
+      loginPassInput = document.createElement('input');
+      loginPassInput.type = 'password';
+      loginPassInput.className = 'auth-password-input';
+      loginPassInput.placeholder = 'Mật khẩu (≥ 3 ký tự)';
+      loginPassInput.value = '123';
+
+      const submitLogin = createIconButton('log-in', 'Đăng nhập', () => {
+        const res = loginAccount(loginUserInput.value, loginPassInput.value, selectedVariant);
+        if (!res.ok) {
+          error.textContent = res.error;
+          return;
+        }
+        error.textContent = '';
+        gameNameInput.value = res.account.gameName;
+        updateRankBanner();
+        renderAuthSection();
+        renderLeaderboardRows();
+      });
+
+      passRow.append(loginPassInput, submitLogin);
+      passLabel.append(passRow);
+      form.append(userLabel, passLabel);
+      authContainer.append(form);
+      authStatus.textContent = '💡 Đăng nhập hoặc chuyển sang tab "Đăng ký tài khoản" để tạo tài khoản mới';
+    } else {
+      // Dedicated Registration Form: Username, Tên game, Password, Xác nhận mật khẩu
+      const form = document.createElement('div');
+      form.className = 'auth-form auth-form-register';
+
+      const regRow1 = document.createElement('div');
+      regRow1.className = 'auth-two-cols';
+
+      const userLabel = document.createElement('label');
+      userLabel.textContent = 'Tài khoản (Username)';
+      regUserInput = document.createElement('input');
+      regUserInput.className = 'reg-username-input';
+      regUserInput.placeholder = 'VD: teovip01';
+      regUserInput.addEventListener('input', () => {
+        regUserInput.value = Array.from(regUserInput.value).slice(0, MAX_NAME_LENGTH).join('');
+      });
+      userLabel.append(regUserInput);
+
+      const gameLabel = document.createElement('label');
+      gameLabel.textContent = 'Tên trong game';
+      gameNameInput.placeholder = 'VD: Tèo Bóng Nước';
+      gameLabel.append(gameNameInput);
+      regRow1.append(userLabel, gameLabel);
+
+      const regRow2 = document.createElement('div');
+      regRow2.className = 'auth-two-cols';
+
+      const passLabel = document.createElement('label');
+      passLabel.textContent = 'Mật khẩu';
+      regPassInput = document.createElement('input');
+      regPassInput.type = 'password';
+      regPassInput.className = 'reg-password-input';
+      regPassInput.placeholder = 'Mật khẩu (≥ 3 ký tự)';
+      passLabel.append(regPassInput);
+
+      const confirmLabel = document.createElement('label');
+      confirmLabel.textContent = 'Xác nhận mật khẩu';
+      regConfirmInput = document.createElement('input');
+      regConfirmInput.type = 'password';
+      regConfirmInput.className = 'reg-confirm-input';
+      regConfirmInput.placeholder = 'Nhập lại mật khẩu';
+      confirmLabel.append(regConfirmInput);
+      regRow2.append(passLabel, confirmLabel);
+
+      const submitReg = createIconButton('user-plus', 'Hoàn tất Đăng ký', () => {
+        const res = registerAccount(
+          regUserInput.value,
+          gameNameInput.value,
+          regPassInput.value,
+          regConfirmInput.value,
+          selectedVariant,
+        );
+        if (!res.ok) {
+          error.textContent = res.error;
+          return;
+        }
+        error.textContent = '';
+        gameNameInput.value = res.account.gameName;
+        updateRankBanner();
+        renderAuthSection();
+        renderLeaderboardRows();
+      });
+      submitReg.classList.add('auth-submit-full');
+
+      form.append(regRow1, regRow2, submitReg);
+      authContainer.append(form);
+      authStatus.textContent = '📝 Điền Username, Tên game, Mật khẩu và Xác nhận mật khẩu để tạo tài khoản';
+    }
+  };
 
   const charTitle = document.createElement('div');
   charTitle.className = 'char-picker-title';
@@ -148,6 +291,7 @@ export function showHome(root: HTMLElement): void {
     card.addEventListener('click', () => {
       selectedVariant = variant.id;
       localStorage.setItem('te-nuoc-variant', String(selectedVariant));
+      updateActiveAccountProfile(gameNameInput.value, selectedVariant);
       updateDetailText(selectedVariant);
       for (const item of charCards) item.classList.toggle('selected', item === card);
       renderLeaderboardRows();
@@ -155,7 +299,6 @@ export function showHome(root: HTMLElement): void {
     charCards.push(card);
     charGrid.append(card);
   }
-  nameBox.append(rankBanner, authGrid, authStatus, charTitle, charGrid, charDetail);
 
   const roomBox = document.createElement('section');
   roomBox.className = 'home-box home-box-room';
@@ -167,61 +310,7 @@ export function showHome(root: HTMLElement): void {
   roomCode.placeholder = 'Mã phòng (4 chữ)';
   roomCode.value = parseRoute(location.hash).roomCode ?? '';
 
-  const error = document.createElement('p');
-  error.className = 'error';
-
-  const cleanName = (): string | null => {
-    const clean = normalizeName(name.value);
-    if (!clean) { error.textContent = 'Vui lòng nhập tên'; return null; }
-    const pass = password.value.trim() || '123';
-    const authRes = registerOrLoginAccount(clean, pass, selectedVariant);
-    if (!authRes.ok) {
-      error.textContent = authRes.error;
-      return null;
-    }
-    localStorage.setItem('te-nuoc-name', authRes.account.username);
-    localStorage.setItem('te-nuoc-variant', String(selectedVariant));
-    error.textContent = '';
-    updateRankBanner();
-    renderLeaderboardRows();
-    return authRes.account.username;
-  };
-
-  const join = async (mode: 'private' | 'code' | 'public'): Promise<void> => {
-    const clean = cleanName();
-    if (!clean) return;
-    error.textContent = 'Đang kết nối…';
-    try {
-      const client = connect();
-      const room = mode === 'private' ? await client.createPrivate(clean, selectedVariant)
-        : mode === 'code' ? await client.joinByCode(roomCode.value, clean, selectedVariant)
-          : await client.quickMatch(clean, selectedVariant);
-      if (mode === 'private') location.hash = `#/r/${room.roomId}`;
-      showRoom(root, room);
-    } catch (cause) {
-      error.textContent = mapJoinError(cause);
-      const retry = createIconButton('refresh', 'Thử lại', () => {
-        retry.remove();
-        void join(mode);
-      });
-      error.append(retry);
-    }
-  };
-
-  const create = createIconButton('plus', 'Tạo phòng riêng', () => { void join('private'); });
-  const quick = createIconButton('swords', 'Ghép ngẫu nhiên', () => { void join('public'); });
-  const enter = createIconButton('log-in', 'Vào', () => { void join('code'); });
-  const button = createIconButton('bot', 'Chơi thử với bot', () => {
-    const clean = cleanName();
-    if (!clean) return;
-    startPractice(root);
-  });
-
-  roomRow.append(roomCode, enter);
-  roomLabel.append(roomRow);
-  roomBox.append(roomLabel, create);
-
-  // Build Left Leaderboard Column
+  // Build Right Leaderboard Column
   const lbHeader = document.createElement('div');
   lbHeader.className = 'lb-header';
   const lbTitle = document.createElement('div');
@@ -232,14 +321,14 @@ export function showHome(root: HTMLElement): void {
   lbRule.textContent = 'Thắng 1 trận = +1 ⭐';
   const lbSub = document.createElement('div');
   lbSub.className = 'lb-subtitle';
-  lbSub.textContent = 'Đăng ký nhanh Username + Mật khẩu bên trái để lưu Sao & đua Top!';
+  lbSub.textContent = 'Đăng ký / Đăng nhập bên trái để lưu phiên tự động & đua Top!';
   lbHeader.append(lbTitle, lbRule, lbSub);
 
   const lbList = document.createElement('div');
   lbList.className = 'lb-list';
   const renderLeaderboardRows = () => {
     lbList.replaceChildren();
-    const entries = getLeaderboard(name.value, selectedVariant);
+    const entries = getLeaderboard(gameNameInput.value, selectedVariant);
     entries.forEach((entry, index) => {
       const row = document.createElement('div');
       row.className = `lb-row ${entry.isSelf ? 'lb-row-self' : ''} lb-rank-${index + 1}`;
@@ -264,12 +353,76 @@ export function showHome(root: HTMLElement): void {
       lbList.append(row);
     });
   };
-  name.addEventListener('input', () => {
-    name.value = Array.from(name.value).slice(0, MAX_NAME_LENGTH).join('');
-    renderLeaderboardRows();
-  });
+
+  renderAuthSection();
   renderLeaderboardRows();
+  nameBox.append(rankBanner, authContainer, authStatus, charTitle, charGrid, charDetail);
   leaderboardPanel.append(lbHeader, lbList);
+
+  const resolvePlayerCredentials = (): { username: string; gameName: string } | null => {
+    const current = getActiveAccount();
+    if (current) {
+      const updatedGameName = normalizeName(gameNameInput.value) ?? current.gameName;
+      updateActiveAccountProfile(updatedGameName, selectedVariant);
+      error.textContent = '';
+      return { username: current.username, gameName: updatedGameName };
+    }
+    const cleanGame = normalizeName(gameNameInput.value);
+    if (!cleanGame) {
+      error.textContent = 'Vui lòng nhập Tên của bạn hoặc Đăng nhập';
+      return null;
+    }
+    const rawUser = authTab === 'register' && normalizeName(regUserInput.value)
+      ? normalizeName(regUserInput.value)!
+      : cleanGame;
+    const rawPass = (authTab === 'register' ? regPassInput.value : loginPassInput.value).trim() || '123';
+    const authRes = registerOrLoginAccount(rawUser, rawPass, selectedVariant, cleanGame);
+    if (!authRes.ok) {
+      error.textContent = authRes.error;
+      return null;
+    }
+    error.textContent = '';
+    updateRankBanner();
+    renderAuthSection();
+    renderLeaderboardRows();
+    return { username: authRes.account.username, gameName: authRes.account.gameName };
+  };
+
+  const join = async (mode: 'private' | 'code' | 'public'): Promise<void> => {
+    const creds = resolvePlayerCredentials();
+    if (!creds) return;
+    error.textContent = 'Đang kết nối…';
+    try {
+      const client = connect();
+      const room = mode === 'private'
+        ? await client.createPrivate(creds.gameName, selectedVariant, creds.username)
+        : mode === 'code'
+          ? await client.joinByCode(roomCode.value, creds.gameName, selectedVariant, creds.username)
+          : await client.quickMatch(creds.gameName, selectedVariant, creds.username);
+      if (mode === 'private') location.hash = `#/r/${room.roomId}`;
+      showRoom(root, room);
+    } catch (cause) {
+      error.textContent = mapJoinError(cause);
+      const retry = createIconButton('refresh', 'Thử lại', () => {
+        retry.remove();
+        void join(mode);
+      });
+      error.append(retry);
+    }
+  };
+
+  const create = createIconButton('plus', 'Tạo phòng riêng', () => { void join('private'); });
+  const quick = createIconButton('swords', 'Ghép ngẫu nhiên', () => { void join('public'); });
+  const enter = createIconButton('log-in', 'Vào', () => { void join('code'); });
+  const button = createIconButton('bot', 'Chơi thử với bot', () => {
+    const creds = resolvePlayerCredentials();
+    if (!creds) return;
+    startPractice(root);
+  });
+
+  roomRow.append(roomCode, enter);
+  roomLabel.append(roomRow);
+  roomBox.append(roomLabel, create);
 
   panel.append(nameBox, roomBox, quick, button, error);
   layout.append(panel, leaderboardPanel);

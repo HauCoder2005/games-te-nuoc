@@ -1,7 +1,7 @@
 import { schema, t, type SchemaType } from '@colyseus/schema';
 
 export const LobbyPlayer = schema({
-  sessionId: t.string(), slot: t.uint8(), name: t.string(), team: t.uint8(),
+  sessionId: t.string(), slot: t.uint8(), username: t.string(), name: t.string(), team: t.uint8(),
   variant: t.uint8(), isBot: t.boolean(), ready: t.boolean(), connected: t.boolean(),
 }, 'LobbyPlayer');
 export type LobbyPlayer = SchemaType<typeof LobbyPlayer>;
