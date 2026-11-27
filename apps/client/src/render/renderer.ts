@@ -252,6 +252,12 @@ export function createRenderer(canvas: HTMLCanvasElement, overlay: HTMLCanvasEle
   canvas.width = VIEW_W; canvas.height = VIEW_H;
   context.imageSmoothingEnabled = false;
   const effects = new Effects();
+  const raftCanvas = document.createElement('canvas');
+  raftCanvas.width = VIEW_W;
+  raftCanvas.height = VIEW_H;
+  const raftContext = raftCanvas.getContext('2d');
+  if (raftContext) raftContext.imageSmoothingEnabled = false;
+  let cachedRaftSize = '';
   let scaleX = 0;
   let scaleY = 0;
   let pixelRatio = 0;
@@ -312,14 +318,26 @@ export function createRenderer(canvas: HTMLCanvasElement, overlay: HTMLCanvasEle
         POOL_RECT.y1 - POOL_RECT.y0,
       );
       context.clip();
+      const waterFrame = bank?.frame('water_ripple', 'loop', view.time) ?? null;
       for (let y = POOL_RECT.y0; y < POOL_RECT.y1; y += 32) {
         for (let x = POOL_RECT.x0; x < POOL_RECT.x1; x += 32) {
-          drawFrame(context, bank?.frame('water_ripple', 'loop', view.time) ?? null, x, y);
+          drawFrame(context, waterFrame, x, y);
         }
       }
       context.restore();
-      drawRaft(context, view, bank);
+      if (view.raft.warn || !raftContext) {
+        drawRaft(context, view, bank);
+      } else {
+        const raftSize = `${view.raft.w}:${view.raft.h}`;
+        if (cachedRaftSize !== raftSize) {
+          raftContext.clearRect(0, 0, VIEW_W, VIEW_H);
+          drawRaft(raftContext, view, bank);
+          cachedRaftSize = raftSize;
+        }
+        context.drawImage(raftCanvas, 0, 0);
+      }
       drawPillarZone(context, view);
+      const viewerTeam = view.players.find((player) => player.slot === viewerSlot)?.team ?? null;
       for (const player of view.players) {
         if (player.status === 'respawning') continue;
         context.fillStyle = 'rgba(43, 30, 47, 0.3)';
@@ -329,7 +347,6 @@ export function createRenderer(canvas: HTMLCanvasElement, overlay: HTMLCanvasEle
 
         // Directional ring & rotating aim arrow under player feet
         const isViewer = player.slot === viewerSlot;
-        const viewerTeam = view.players.find((p) => p.slot === viewerSlot)?.team ?? null;
         if (isViewer || viewerTeam === null || player.team === viewerTeam) {
           const adx = player.aimX - player.x;
           const ady = player.aimY - player.y;

@@ -2,6 +2,7 @@ export const VIEW_W = 640;
 export const VIEW_H = 360;
 export const TILE = 16;
 export const DT = 1 / 30;
+export const LOBBY_TICK_MS = 100;
 export const POOL_RECT = { x0: 24, y0: 60, x1: 616, y1: 338 } as const;
 export const RAFT_CENTER = { x: 320, y: 199 } as const;
 export const RAFT_W = 32;

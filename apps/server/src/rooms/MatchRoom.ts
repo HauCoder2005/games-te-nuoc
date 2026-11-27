@@ -5,6 +5,7 @@ import {
   MAX_PLAYERS, MSG, normalizeName, PROTOCOL_VERSION, RAFT_H, RAFT_W, RNG_DIVISOR,
   SCORE_TO_WIN, setBot, step, validateInput, removePlayer, RECONNECT_GRACE, MAX_ROOMS_PER_IP_PER_MIN,
   TICK_METRICS_EVERY, TOTAL_ROUNDS,
+  LOBBY_TICK_MS,
 } from '@te-nuoc/shared';
 import type { ErrorCode, InputFrame, World } from '@te-nuoc/shared';
 import { GameState, LobbyPlayer, LobbyState, RoomState } from './schema.js';
@@ -82,7 +83,7 @@ export class MatchRoom extends Room<{ state: RoomState }> {
   }
 
   private log(evt: string): void {
-    console.log(JSON.stringify({ evt, roomId: this.roomId, mode: this.mode, humans: this.lobby.members.length }));
+    console.log(JSON.stringify({ evt, roomId: this.roomId, mode: this.mode, humans: this.lobby?.members.length ?? 0 }));
   }
 
   async onCreate(options: unknown): Promise<void> {
@@ -102,7 +103,7 @@ export class MatchRoom extends Room<{ state: RoomState }> {
       this.state.lobby.code = this.code;
       await this.setPrivate(true);
     }
-    this.setFixedTimestep((context) => this.tick(context.dt), 1 / DT);
+    this.startLobbyClock();
     this.log('room_created');
   }
 
@@ -280,26 +281,34 @@ export class MatchRoom extends Room<{ state: RoomState }> {
     this.matchEndLogged = false;
     this.syncLobby();
     syncState(this.world, this.state.game, this.namesBySlot);
+    this.setFixedTimestep((context) => this.tick(context.dt), 1 / DT);
     this.log('match_started');
   }
 
-  private tick(dt: number): void {
-    if (!this.world && this.mode === 'public' && this.publicCountdown > 0) {
-      this.publicCountdown = Math.max(0, this.publicCountdown - dt);
+  private startLobbyClock(): void {
+    this.setTimestep((deltaMs) => {
+      if (this.mode !== 'public' || this.publicCountdown <= 0 || this.world) return;
+      this.publicCountdown = Math.max(0, this.publicCountdown - deltaMs / 1000);
       this.state.lobby.countdown = this.publicCountdown;
       if (this.publicCountdown === 0) this.beginMatch();
-    }
+    }, LOBBY_TICK_MS);
+  }
+
+  private tick(dt: number): void {
     if (!this.world) return;
     const tickStart = performance.now();
-    const inputs = new Map(this.latestInputs);
-    for (const player of this.world.players) {
-      if (!player.isBot) continue;
-      let memory = this.botMemory.get(player.slot);
-      if (!memory) {
-        memory = createBotMemory(randomInt(RNG_DIVISOR));
-        this.botMemory.set(player.slot, memory);
+    const active = this.world.phase === 'playing' || this.world.phase === 'golden';
+    const inputs = active ? new Map(this.latestInputs) : new Map<number, InputFrame>();
+    if (active) {
+      for (const player of this.world.players) {
+        if (!player.isBot) continue;
+        let memory = this.botMemory.get(player.slot);
+        if (!memory) {
+          memory = createBotMemory(randomInt(RNG_DIVISOR));
+          this.botMemory.set(player.slot, memory);
+        }
+        inputs.set(player.slot, botInput(this.world, player.slot, memory));
       }
-      inputs.set(player.slot, botInput(this.world, player.slot, memory));
     }
     const events = step(this.world, inputs, dt);
     syncState(this.world, this.state.game, this.namesBySlot);
@@ -315,6 +324,7 @@ export class MatchRoom extends Room<{ state: RoomState }> {
       for (const member of this.lobby.members) member.ready = false;
       if (this.mode === 'public' && this.lobby.members.length < MAX_PLAYERS) void this.unlock();
       this.syncLobby();
+      this.startLobbyClock();
     }
     const tickMs = performance.now() - tickStart;
     this.tickCount++;
