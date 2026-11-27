@@ -1,5 +1,15 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+
+const HASH_PREFIX = 'scrypt$';
+const HASH_FORMAT = /^scrypt\$[0-9a-f]{32}\$[0-9a-f]{64}$/;
+
+function hashPassword(password: string): string {
+  const salt = randomBytes(16).toString('hex');
+  const hash = scryptSync(password, salt, 32).toString('hex');
+  return `${HASH_PREFIX}${salt}$${hash}`;
+}
 
 export interface AccountRecord {
   username: string;
@@ -34,8 +44,25 @@ export class AccountStore {
 
   get(username: string): AccountRecord | undefined { return this.accounts.get(username.toLowerCase()); }
 
+  verify(username: string, password: string): boolean {
+    const account = this.get(username);
+    if (!account) return false;
+    if (!HASH_FORMAT.test(account.password)) {
+      if (account.password !== password) return false;
+      this.set(account);
+      return true;
+    }
+    const [, salt, expectedHex] = account.password.split('$');
+    if (!salt || !expectedHex || expectedHex.length !== 64) return false;
+    const expected = Buffer.from(expectedHex, 'hex');
+    if (expected.length !== 32) return false;
+    return timingSafeEqual(scryptSync(password, salt, 32), expected);
+  }
+
   set(account: AccountRecord): void {
-    this.accounts.set(account.username.toLowerCase(), account);
+    const stored = { ...account, password: HASH_FORMAT.test(account.password)
+      ? account.password : hashPassword(account.password) };
+    this.accounts.set(account.username.toLowerCase(), stored);
     this.save();
   }
 

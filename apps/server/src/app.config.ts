@@ -71,7 +71,7 @@ const server = defineServer({
         return;
       }
       const existing = accounts.get(cleanUser);
-      if (!existing || existing.password !== rawPass) {
+      if (!existing || !accounts.verify(cleanUser, rawPass)) {
         response.status(401).json({ ok: false, message: 'Sai Username hoặc Mật khẩu' });
         return;
       }
@@ -90,7 +90,7 @@ const server = defineServer({
       const key = cleanUser.toLowerCase();
       const existing = accounts.get(key);
       if (existing) {
-        if (existing.password !== rawPass) {
+        if (!accounts.verify(cleanUser, rawPass)) {
           response.status(401).json({ ok: false, message: 'Sai mật khẩu cho tài khoản này' });
           return;
         }
@@ -113,7 +113,7 @@ const server = defineServer({
       const rawPass = typeof body?.password === 'string' ? body.password.trim() : '';
       if (!cleanUser) { response.status(400).json({ ok: false }); return; }
       const existing = accounts.get(cleanUser);
-      if (!existing || existing.password !== rawPass) { response.status(401).json({ ok: false }); return; }
+      if (!existing || !accounts.verify(cleanUser, rawPass)) { response.status(401).json({ ok: false }); return; }
       accounts.win(cleanUser);
       response.json({ ok: true, user: publicUser(existing) });
     });
