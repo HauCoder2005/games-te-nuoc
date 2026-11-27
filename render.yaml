@@ -4,7 +4,7 @@ services:
     runtime: docker
     dockerfilePath: ./infra/server.Dockerfile
     region: singapore
-    plan: starter
+    plan: free
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
