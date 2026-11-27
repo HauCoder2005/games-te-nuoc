@@ -72,7 +72,11 @@ function defaultServerUrl(): string {
   if (typeof location === 'undefined') return 'ws://localhost:2567';
   const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const host = location.hostname || 'localhost';
-  return `${wsProto}//${host}:2567`;
+  // On Vite dev server (5173), connect to Colyseus on 2567; in production (80/443 or single-port cloud host), use location.host
+  if (location.port === '5173') {
+    return `${wsProto}//${host}:2567`;
+  }
+  return `${wsProto}//${location.host || `${host}:2567`}`;
 }
 
 export function connect(url = defaultServerUrl()): GameClient {

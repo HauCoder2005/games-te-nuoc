@@ -259,7 +259,11 @@ function apiBaseUrl(): string {
   }
   if (typeof location !== 'undefined') {
     const httpProto = location.protocol === 'https:' ? 'https:' : 'http:';
-    return `${httpProto}//${location.hostname || 'localhost'}:2567`;
+    const host = location.hostname || 'localhost';
+    if (location.port === '5173') {
+      return `${httpProto}//${host}:2567`;
+    }
+    return `${httpProto}//${location.host || `${host}:2567`}`;
   }
   return 'http://localhost:2567';
 }
