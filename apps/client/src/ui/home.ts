@@ -243,13 +243,6 @@ export function showHome(root: HTMLElement): void {
   charTitle.textContent = 'NHÂN VẬT';
   const charGrid = document.createElement('div');
   charGrid.className = 'char-picker';
-  const charDetail = document.createElement('div');
-  charDetail.className = 'char-detail';
-  const updateDetailText = (index: number) => {
-    const v = CHARACTER_VARIANTS[index];
-    charDetail.textContent = `${v.label} (${v.role}) — ${v.detail}`;
-  };
-  updateDetailText(selectedVariant);
   const charCards: HTMLButtonElement[] = [];
 
   for (const variant of CHARACTER_VARIANTS) {
@@ -263,15 +256,11 @@ export function showHome(root: HTMLElement): void {
     const cardLabel = document.createElement('span');
     cardLabel.className = 'char-card-label';
     cardLabel.textContent = variant.label;
-    const cardRole = document.createElement('span');
-    cardRole.className = `char-card-role gender-${variant.gender}`;
-    cardRole.textContent = variant.role;
-    card.append(portrait, cardLabel, cardRole);
+    card.append(portrait, cardLabel);
     card.addEventListener('click', () => {
       selectedVariant = variant.id;
       localStorage.setItem('te-nuoc-variant', String(selectedVariant));
       updateActiveAccountProfile(gameNameInput.value, selectedVariant);
-      updateDetailText(selectedVariant);
       for (const item of charCards) item.classList.toggle('selected', item === card);
       renderLeaderboardRows();
     });
@@ -331,7 +320,7 @@ export function showHome(root: HTMLElement): void {
 
   renderAuthSection();
   renderLeaderboardRows();
-  nameBox.append(rankBanner, authContainer, charTitle, charGrid, charDetail);
+  nameBox.append(rankBanner, authContainer, charTitle, charGrid);
   leaderboardPanel.append(lbHeader, lbList);
 
   const resolvePlayerCredentials = (): { username: string; gameName: string } | null => {
