@@ -86,6 +86,11 @@ export const PROTOCOL_VERSION = 3;
 export const TEAM_COLORS = ['#E53B3B', '#3B8BF0'] as const;
 export const TEAM_NAME_COLORS = ['#FF7A7A', '#6EC1FF'] as const;
 export const SELF_NAME_COLOR = '#FFE066';
+export const NAME_TAG_FONT_PX = 12;
+export const NAME_TAG_STROKE_PX = 2.5;
+export const NAME_TAG_SIDE_GAP = 11;
+export const NAME_TAG_TOP_OFFSET = 25;
+export const NAME_TAG_SIDE_Y_OFFSET = 10;
 export const CHARACTER_VARIANTS = [
   {
     id: 0,
