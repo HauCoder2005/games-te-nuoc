@@ -1,16 +1,72 @@
-# Triển khai TÉ NƯỚC!
+# Triển khai Aqua Blast — Lựa chọn 3 (Frontend trên CDN + Backend trên Cloud)
 
-## Server tại AWS Singapore
+Kiến trúc này tách riêng **Web Client (Frontend)** lên mạng CDN toàn cầu (Cloudflare Pages / Vercel / Netlify / AWS S3+CloudFront) để tải trang tức thì cho hàng ngàn người, và **Game Server (Colyseus WebSocket + API)** lên Cloud Server tại **Singapore** để độ trễ (ping) thấp nhất cho người chơi tại Việt Nam.
 
-1. Tạo EC2 hoặc Lightsail Ubuntu tại `ap-southeast-1`, gắn IP tĩnh. Mở TCP 22 cho quản trị, 80 và 443 cho người chơi.
-2. Trỏ bản ghi A của `game-api.example.com` đến IP đó. Cài Docker Engine kèm Compose plugin và Git trên máy.
-3. Clone repo vào thư mục triển khai. Chép `infra/.env.example` thành `infra/.env`, đặt `SERVER_DOMAIN`, `ALLOWED_ORIGIN` là URL CloudFront của client và mật khẩu quản trị riêng. Không commit `.env`.
-4. Chạy `docker compose --env-file infra/.env -f infra/docker-compose.yml up -d --build`. Caddy tự lấy chứng chỉ TLS cho tên miền thật; kiểm tra `https://game-api.example.com/health` trả `ok`, `rooms`, `clients`.
-5. Các lần sau đặt `SERVER_HOST`, `SERVER_USER`, `SERVER_DIR` rồi chạy `infra/deploy-server.sh` từ máy quản trị. Script chạy `git pull --ff-only` và cập nhật Compose.
+---
 
-## Client trên S3 và CloudFront
+## Bước 1: Đẩy code lên GitHub
+```bash
+git remote add origin https://github.com/<tai-khoan-cua-ban>/aqua-blast.git
+git push -u origin master
+```
 
-1. Tạo S3 bucket private tại Singapore, tắt public access. Tạo CloudFront distribution với S3 origin và Origin Access Control (OAC), cấp bucket policy đọc cho distribution. Đặt default root object `index.html` và custom error 403/404 trả `/index.html` cho route SPA.
-2. Tạo AWS CLI credentials có quyền ghi bucket và tạo invalidation. Trên máy build đặt `BUCKET`, `CF_DISTRIBUTION_ID`, `VITE_SERVER_URL=wss://game-api.example.com`.
-3. Chạy `infra/deploy-client.sh`. Script build Vite, sync file tĩnh, đặt cache dài cho file có hash, `no-cache` cho `index.html`, rồi invalidation `/index.html`.
-4. Mở URL CloudFront. Client dùng WebSocket TLS tới server; `ALLOWED_ORIGIN` của server phải khớp origin CloudFront.
+---
+
+## Bước 2: Deploy Backend (Game Server Colyseus) — Lấy link `wss://`
+Repo đã có sẵn cấu hình tự động cho **Railway**, **Render (Singapore)**, **Fly.io (Singapore)** và **VPS Docker (AWS Singapore)**. Bạn chỉ cần chọn **1** trong các dịch vụ dưới đây:
+
+### Cách 2A — Railway.app hoặc Render.com (Không cần gõ lệnh)
+1. Vào **Railway.app** (hoặc **Render.com** → *New Blueprint / Web Service*).
+2. Chọn repo GitHub `aqua-blast` (hệ thống tự nhận [railway.json](../railway.json) hoặc [render.yaml](../render.yaml) và build từ [infra/server.Dockerfile](../infra/server.Dockerfile)).
+3. Sau khi deploy xong, copy domain của Backend (ví dụ: `aqua-blast-server.up.railway.app` hoặc `aqua-blast-server.onrender.com`).
+   - Kiểm tra mở `https://<domain-backend>/health` thấy `{"ok":true,"rooms":0,"clients":0}` là thành công.
+   - Địa chỉ WebSocket của bạn là: **`wss://<domain-backend>`**.
+
+### Cách 2B — Fly.io (Datacenter Singapore `sin`, cấu hình sẵn 1.000 kết nối/máy)
+Đã có sẵn file [fly.toml](../fly.toml):
+```bash
+fly auth login
+fly launch --copy-config --name aqua-blast-api --region sin
+fly deploy
+```
+Địa chỉ WebSocket của bạn sẽ là: **`wss://aqua-blast-api.fly.dev`**.
+
+### Cách 2C — VPS riêng (AWS Lightsail / EC2 Singapore / DigitalOcean)
+1. Trỏ tên miền `api.ten-mien-cua-ban.com` về IP VPS (mở cổng 80, 443).
+2. Trên VPS:
+   ```bash
+   cp infra/.env.example infra/.env
+   # Sửa SERVER_DOMAIN=api.ten-mien-cua-ban.com và ALLOWED_ORIGIN=*
+   docker compose --env-file infra/.env -f infra/docker-compose.yml up -d --build
+   ```
+   Địa chỉ WebSocket của bạn sẽ là: **`wss://api.ten-mien-cua-ban.com`**.
+
+---
+
+## Bước 3: Deploy Frontend (Web Client) lên CDN
+Sau khi có link `wss://<domain-backend>` ở Bước 2, bạn deploy Frontend lên CDN:
+
+### Cách 3A — Vercel hoặc Netlify (Đã có sẵn `vercel.json` và `netlify.toml`)
+1. Vào **Vercel.com** hoặc **Netlify.com** → **Import Git Repository** → chọn repo `aqua-blast`.
+2. Hệ thống tự động nhận lệnh build từ [vercel.json](../vercel.json) hoặc [netlify.toml](../netlify.toml) (`apps/client/dist`).
+3. Trong mục **Environment Variables**, thêm **1 biến duy nhất**:
+   - Key: `VITE_SERVER_URL`
+   - Value: `wss://<domain-backend>` *(link lấy từ Bước 2)*
+4. Bấm **Deploy** → Nhận link game (ví dụ `https://aqua-blast.vercel.app`) và gửi cho mọi người chơi!
+
+### Cách 3B — Cloudflare Pages
+1. Vào **Cloudflare Dashboard → Workers & Pages → Create → Pages → Connect to Git**.
+2. Cấu hình Build:
+   - **Build command**: `npm run build -w @te-nuoc/shared && npm run build -w @te-nuoc/client`
+   - **Build output directory**: `apps/client/dist`
+   - **Environment variable**: `VITE_SERVER_URL = wss://<domain-backend>`
+3. Bấm **Save and Deploy**.
+
+### Cách 3C — AWS S3 + CloudFront
+Chạy script có sẵn [infra/deploy-client.sh](../infra/deploy-client.sh):
+```bash
+BUCKET=ten-s3-bucket \
+CF_DISTRIBUTION_ID=E1234567890 \
+VITE_SERVER_URL=wss://<domain-backend> \
+./infra/deploy-client.sh
+```
