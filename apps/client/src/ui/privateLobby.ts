@@ -1,5 +1,8 @@
-import { createMatch, DT, INTERP_DELAY_MS, MSG, TOTAL_ROUNDS, VIEW_H, VIEW_W } from '@te-nuoc/shared';
-import type { GameEvent, InputFrame, RosterEntry, Team, World } from '@te-nuoc/shared';
+import {
+  BALLOON_RANGE_MAX, BALLOON_RANGE_MIN, BALLOON_SPAWN_OFFSET, BALLOON_SPEED,
+  createMatch, DT, INTERP_DELAY_MS, MSG, TOTAL_ROUNDS, VIEW_H, VIEW_W,
+} from '@te-nuoc/shared';
+import type { BalloonState, GameEvent, InputFrame, RosterEntry, Team, World } from '@te-nuoc/shared';
 import type { GameRoom } from '../net/colyseus';
 import { serverErrorMessage } from '../net/colyseus';
 import { Interpolator } from '../net/interp';
@@ -16,6 +19,7 @@ import { attachGameMenus } from './escMenu';
 import { bannerFor, showResults } from './results';
 import { createCharacterAvatar } from './avatar';
 import { createIconButton, type IconName } from './icons';
+import { createCollapsibleLeaveDrawer } from './leaveDrawer';
 
 function button(label: string, action: () => void, icon: IconName = 'play'): HTMLButtonElement {
   return createIconButton(icon, label, action);
@@ -73,8 +77,15 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
   let lastPhase = '';
   let lastLobbySignature = '';
   let predictor: Predictor | null = null;
+  let lastAckSeq = -1;
+  let lastLocalTh = 0;
+  let latestFrame: InputFrame | null = null;
+  let lastRenderTime = performance.now();
+  const localPreviewBalloons: (BalloonState & { expires: number })[] = [];
   const samples = new Map<number, Interpolator>();
+  const balloonSamples = new Map<number, Interpolator>();
   const lastServerPosition = new Map<number, { x: number; y: number }>();
+  const lastBalloonPosition = new Map<number, { x: number; y: number }>();
   const feed: { text: string; expires: number }[] = [];
   let banner = '';
   let bannerUntil = 0;
@@ -225,7 +236,8 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
     hud = document.createElement('div');
     hud.className = 'hud';
     stack.append(canvas, overlay);
-    panel.append(stack, hud, error, leave);
+    const leaveDrawer = createCollapsibleLeaveDrawer(() => { dispose(); showHome(root); });
+    panel.append(stack, hud, error, leaveDrawer);
     renderer = createRenderer(canvas, overlay, null);
     removeMenus = attachGameMenus(panel, () => world, () => new Map([...room.state.game.players.values()].map((player) => [player.slot, player.name])),
       () => { dispose(); showHome(root); });
@@ -238,6 +250,7 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
           y: Math.max(0, Math.min(VIEW_H, (cy - bounds.top) * VIEW_H / bounds.height)) };
       },
       () => {
+        if (predictor) return { x: predictor.position.x, y: predictor.position.y };
         const ownSlot = room.state.lobby.players.get(room.sessionId)?.slot ?? -1;
         const own = world?.players.find((p) => p.slot === ownSlot);
         return own ? { x: own.x, y: own.y } : null;
@@ -249,8 +262,39 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
     timer = window.setInterval(() => {
       if (!input || !world) return;
       const frame: InputFrame = input.sample();
+      latestFrame = frame;
       room.send(MSG.input, { s: frame.seq, mx: frame.mx, my: frame.my, ax: frame.ax, ay: frame.ay, th: frame.th, da: frame.da });
       predictor?.apply(frame);
+
+      // Immediate client-side throw preview so shooting feels 0-latency
+      if (frame.th > lastLocalTh) {
+        lastLocalTh = frame.th;
+        const ownSlot = room.state.lobby.players.get(room.sessionId)?.slot ?? -1;
+        const own = world.players.find((p) => p.slot === ownSlot);
+        if (own && own.ammo > 0 && (own.status === 'alive' || own.status === 'protected')) {
+          const px = predictor?.position.x ?? own.x;
+          const py = predictor?.position.y ?? own.y;
+          const dx = frame.ax - px;
+          const dy = frame.ay - py;
+          const dist = Math.hypot(dx, dy);
+          const nx = dist > 0 ? dx / dist : own.facing;
+          const ny = dist > 0 ? dy / dist : 0;
+          const maxDist = Math.max(BALLOON_RANGE_MIN, Math.min(BALLOON_RANGE_MAX, dist || BALLOON_RANGE_MIN));
+          localPreviewBalloons.push({
+            id: -frame.seq,
+            owner: ownSlot,
+            team: own.team,
+            x: px + nx * BALLOON_SPAWN_OFFSET,
+            y: py + ny * BALLOON_SPAWN_OFFSET,
+            dx: nx,
+            dy: ny,
+            traveled: 0,
+            maxDist,
+            expires: performance.now() + 260,
+          });
+          playSfx({ k: 'throw', slot: ownSlot });
+        }
+      }
     }, DT * 1000);
   }
 
@@ -276,6 +320,8 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
       if (signature !== lastLobbySignature) { lastLobbySignature = signature; showLobby(); }
     }
     else if (renderer && hud) {
+      const renderDt = Math.min(0.05, Math.max(0, (now - lastRenderTime) / 1000));
+      lastRenderTime = now;
       world = worldFromRoom(room, world);
       if (world) {
         const ownSlot = room.state.lobby.players.get(room.sessionId)?.slot ?? -1;
@@ -283,8 +329,20 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
         const received = room.state.game.players.get(String(ownSlot));
         if (own && received) {
           predictor ??= new Predictor(own.x, own.y);
-          predictor.reconcile(received);
-          own.x = predictor.position.x; own.y = predictor.position.y;
+          // Only reconcile when the server actually processes a new input frame (prevents 60fps snapback)
+          if (received.ackSeq !== lastAckSeq || received.status !== own.status) {
+            lastAckSeq = received.ackSeq;
+            predictor.reconcile(received);
+          }
+          own.x = predictor.position.x;
+          own.y = predictor.position.y;
+          if (latestFrame) {
+            own.aimX = latestFrame.ax;
+            own.aimY = latestFrame.ay;
+            if (latestFrame.ax !== own.x) own.facing = latestFrame.ax < own.x ? -1 : 1;
+            own.mvx = latestFrame.mx * 100;
+            own.mvy = latestFrame.my * 100;
+          }
         }
         for (const player of world.players) {
           if (player.slot === ownSlot) continue;
@@ -297,6 +355,39 @@ export function showRoom(root: HTMLElement, room: GameRoom): () => void {
           }
           const point = sample.sample(now - INTERP_DELAY_MS);
           player.x = point.x; player.y = point.y;
+        }
+        // Smoothly interpolate server balloons at 60fps
+        const activeBalloonIds = new Set<number>();
+        for (const balloon of world.balloons) {
+          activeBalloonIds.add(balloon.id);
+          let bSample = balloonSamples.get(balloon.id);
+          if (!bSample) { bSample = new Interpolator(); balloonSamples.set(balloon.id, bSample); }
+          const prev = lastBalloonPosition.get(balloon.id);
+          if (!prev || prev.x !== balloon.x || prev.y !== balloon.y) {
+            bSample.push(now, { x: balloon.x, y: balloon.y });
+            lastBalloonPosition.set(balloon.id, { x: balloon.x, y: balloon.y });
+          }
+          const pt = bSample.sample(now - 45);
+          balloon.x = pt.x; balloon.y = pt.y;
+        }
+        for (const id of balloonSamples.keys()) {
+          if (!activeBalloonIds.has(id)) {
+            balloonSamples.delete(id);
+            lastBalloonPosition.delete(id);
+          }
+        }
+        // Advance local instant-preview balloons until server balloon appears
+        const hasOwnServerBalloon = world.balloons.some((b) => b.owner === ownSlot);
+        for (let i = localPreviewBalloons.length - 1; i >= 0; i--) {
+          const pb = localPreviewBalloons[i];
+          pb.x += pb.dx * BALLOON_SPEED * renderDt;
+          pb.y += pb.dy * BALLOON_SPEED * renderDt;
+          pb.traveled += BALLOON_SPEED * renderDt;
+          if (now > pb.expires || pb.traveled >= pb.maxDist || hasOwnServerBalloon) {
+            localPreviewBalloons.splice(i, 1);
+          } else {
+            world.balloons.push(pb);
+          }
         }
         const names = new Map<number, string>();
         for (const player of room.state.game.players.values()) names.set(player.slot, player.name);

@@ -167,7 +167,11 @@ button:active { transform: translate(2px, 2px); box-shadow: inset 2px 2px 0 #d99
 .team-text-1 { color: #78c6ff; }
 .team-0 { border-top: 3px solid #e53b3b; }
 .team-1 { border-top: 3px solid #3b8bf0; }
-.leave { position: absolute; top: 70px; left: 8px; padding: 4px 10px; font-size: 13px; }
+.leave-drawer { position: absolute; top: 34px; left: 0; z-index: 5; display: flex; align-items: center; pointer-events: auto; }
+.leave-drawer-toggle { width: 26px; height: 34px; padding: 0; font-size: 15px; font-weight: 900; background: rgba(35, 22, 41, 0.9); color: #ffe066; border: 2px solid #181020; border-left: 0; box-shadow: 2px 2px 0 #140c1c; display: flex; align-items: center; justify-content: center; }
+.leave-drawer-btn { position: static; padding: 5px 10px; font-size: 13px; border-left: 0; }
+.leave-drawer-btn[hidden] { display: none; }
+.leave { padding: 4px 10px; font-size: 13px; }
 
 .result { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6; padding: 18px 22px; background: #231629; border: 3px solid #ffcf44; box-shadow: 6px 6px 0 #110b16; border-radius: 0; text-align: center; min-width: min(540px, 92vw); pointer-events: auto; }
 .result-team-0 { border-color: #ff6b6b; }

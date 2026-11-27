@@ -8,7 +8,7 @@ import { showHome } from '../ui/home';
 import { killFeedLine, updateHud } from '../ui/hud';
 import { attachGameMenus } from '../ui/escMenu';
 import { bannerFor, showResults } from '../ui/results';
-import { createIconButton } from '../ui/icons';
+import { createCollapsibleLeaveDrawer } from '../ui/leaveDrawer';
 import type { Awards } from '@te-nuoc/shared';
 
 export function startPractice(root: HTMLElement): () => void {
@@ -23,9 +23,9 @@ export function startPractice(root: HTMLElement): () => void {
   stack.append(canvas, overlay);
   const hud = document.createElement('div');
   hud.className = 'hud';
-  const leave = createIconButton('log-out', 'Rời phòng');
-  leave.classList.add('leave');
-  panel.append(stack, hud, leave);
+  let stop = () => {};
+  const leaveDrawer = createCollapsibleLeaveDrawer(() => { stop(); showHome(root); });
+  panel.append(stack, hud, leaveDrawer);
   root.append(panel);
 
   const chosenVariant = Number(localStorage.getItem('te-nuoc-variant') ?? '0');
@@ -66,13 +66,12 @@ export function startPractice(root: HTMLElement): () => void {
   let bannerUntil = 0;
   let lastScore = '';
   const detachMenus = attachGameMenus(panel, () => world, () => names, () => { stop(); showHome(root); });
-  const stop = () => {
+  stop = () => {
     stopped = true;
     cancelAnimationFrame(request);
     source.destroy();
     detachMenus();
   };
-  leave.addEventListener('click', () => { stop(); showHome(root); });
 
   void loadSprites('/assets/manifest.json').then((bank) => {
     if (!stopped) renderer = createRenderer(canvas, overlay, bank);
