@@ -1,5 +1,7 @@
 import { defineRoom, defineServer, matchMaker } from 'colyseus';
 import express from 'express';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { MatchRoom } from './rooms/MatchRoom.js';
 import { normalizeName } from '@te-nuoc/shared';
 
@@ -133,6 +135,14 @@ const server = defineServer({
         .sort((a, b) => b.stars - a.stars);
       response.json({ ok: true, leaderboard: list.slice(0, 10) });
     });
+    const clientDistCandidates = [
+      resolve(process.cwd(), 'apps/client/dist'),
+      resolve(process.cwd(), '../client/dist'),
+    ];
+    const clientDist = clientDistCandidates.find((dir) => existsSync(dir));
+    if (clientDist) {
+      app.use(express.static(clientDist));
+    }
   },
 });
 

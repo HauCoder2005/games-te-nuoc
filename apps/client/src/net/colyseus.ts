@@ -67,7 +67,15 @@ export class GameClient {
   }
 }
 
-export function connect(url = import.meta.env.VITE_SERVER_URL ?? `ws://${location.hostname}:2567`): GameClient {
+function defaultServerUrl(): string {
+  if (import.meta.env.VITE_SERVER_URL) return import.meta.env.VITE_SERVER_URL;
+  if (typeof location === 'undefined') return 'ws://localhost:2567';
+  const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const host = location.hostname || 'localhost';
+  return `${wsProto}//${host}:2567`;
+}
+
+export function connect(url = defaultServerUrl()): GameClient {
   return new GameClient(url);
 }
 

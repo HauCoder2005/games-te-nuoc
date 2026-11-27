@@ -254,8 +254,14 @@ export function logoutAccount(): void {
 }
 
 function apiBaseUrl(): string {
-  const wsUrl = import.meta.env.VITE_SERVER_URL ?? (typeof location !== 'undefined' ? `ws://${location.hostname}:2567` : 'ws://localhost:2567');
-  return wsUrl.replace(/^ws(s?):\/\//, 'http$1://').replace(/\/$/, '');
+  if (import.meta.env.VITE_SERVER_URL) {
+    return import.meta.env.VITE_SERVER_URL.replace(/^ws(s?):\/\//, 'http$1://').replace(/\/$/, '');
+  }
+  if (typeof location !== 'undefined') {
+    const httpProto = location.protocol === 'https:' ? 'https:' : 'http:';
+    return `${httpProto}//${location.hostname || 'localhost'}:2567`;
+  }
+  return 'http://localhost:2567';
 }
 
 async function syncRegisterToServer(account: StoredAccount, confirmPassword: string): Promise<void> {
