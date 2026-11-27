@@ -11,6 +11,13 @@ it('/health returns ok and room counts', async () => {
   const response = await server.http.get('/health');
   expect(response.data).toMatchObject({ ok: true, rooms: 0, clients: 0 });
 });
+it('leaderboard reflects a registered win immediately', async () => {
+  const username = `r${Date.now().toString(36).slice(-8)}`;
+  await server.http.post('/api/register', { body: { username, gameName: 'Người thật', password: 'pass123' } });
+  await server.http.post('/api/rank/win', { body: { username, password: 'pass123' } });
+  const response = await server.http.get('/api/leaderboard');
+  expect(response.data.leaderboard).toContainEqual(expect.objectContaining({ username, name: 'Người thật', stars: 1 }));
+});
 it('rejects wrong protocol version', async () => {
   await expect(server.sdk.joinOrCreate('match', { mode: 'public', name: 'A', v: 2 })).rejects.toThrow();
 });

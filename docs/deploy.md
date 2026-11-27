@@ -13,6 +13,9 @@ git push -u origin master
 ---
 
 ## Bước 2: Deploy Backend (Game Server Colyseus) — Lấy link `wss://`
+
+Bảng xếp hạng được lưu trong `/app/data/accounts.json`. VPS Docker Compose đã gắn volume `account_data`; với Railway, Render hoặc Fly.io, cần gắn persistent volume vào `/app/data` và đặt `ACCOUNT_DATA_FILE=/app/data/accounts.json` để điểm không mất khi khởi động lại.
+
 Repo đã có sẵn cấu hình tự động cho **Railway**, **Render (Singapore)**, **Fly.io (Singapore)** và **VPS Docker (AWS Singapore)**. Bạn chỉ cần chọn **1** trong các dịch vụ dưới đây:
 
 ### Cách 2A — Railway.app hoặc Render.com (Không cần gõ lệnh)

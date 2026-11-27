@@ -18,6 +18,11 @@ export function integerScale(winW: number, winH: number): number {
   return Math.max(1, Math.floor(Math.min(winW / VIEW_W, winH / VIEW_H)));
 }
 
+export function fitGameViewport(winW: number, winH: number): { width: number; height: number; scale: number } {
+  const scale = Math.min(winW / VIEW_W, winH / VIEW_H);
+  return { width: VIEW_W * scale, height: VIEW_H * scale, scale };
+}
+
 function drawFrame(ctx: CanvasRenderingContext2D, frame: SpriteFrame | null, x: number, y: number): boolean {
   if (!frame) return false;
   ctx.drawImage(frame.img, frame.sx, frame.sy, frame.sw, frame.sh,
@@ -265,33 +270,15 @@ export function createRenderer(canvas: HTMLCanvasElement, overlay: HTMLCanvasEle
   let lastWinH = 0;
 
   function resize(): void {
-    const winW = window.innerWidth || VIEW_W;
-    const winH = window.innerHeight || VIEW_H;
-    const nextRatio = window.devicePixelRatio || 1;
+    const winW = window.visualViewport?.width || window.innerWidth || VIEW_W;
+    const winH = window.visualViewport?.height || window.innerHeight || VIEW_H;
+    const nextRatio = Math.min(2, window.devicePixelRatio || 1);
     if (winW === lastWinW && winH === lastWinH && nextRatio === pixelRatio) return;
     lastWinW = winW; lastWinH = winH; pixelRatio = nextRatio;
 
-    const isMobileOrTouch = (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0)
-      || winW <= 1024 || winH <= 640;
-
-    let width: number;
-    let height: number;
-    if (isMobileOrTouch) {
-      // Fill the full height on mobile landscape; cap horizontal stretch ratio so circles/characters never distort
-      const fitScale = Math.min(winW / VIEW_W, winH / VIEW_H);
-      height = Math.round(VIEW_H * fitScale);
-      const maxAspectW = Math.round(height * (20 / 9));
-      width = Math.min(winW, Math.max(Math.round(VIEW_W * fitScale), maxAspectW));
-      scaleX = width / VIEW_W;
-      scaleY = height / VIEW_H;
-    } else {
-      // Smooth proportional fit on any large monitor (1080p, 2K, 4K, ultrawide) without breaking or clipping
-      const fitScale = Math.min(winW / VIEW_W, winH / VIEW_H);
-      scaleX = fitScale;
-      scaleY = fitScale;
-      width = Math.round(VIEW_W * fitScale);
-      height = Math.round(VIEW_H * fitScale);
-    }
+    const { width, height, scale } = fitGameViewport(winW, winH);
+    scaleX = scale;
+    scaleY = scale;
 
     canvas.parentElement?.style.setProperty('width', `${width}px`);
     canvas.parentElement?.style.setProperty('height', `${height}px`);

@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CHARACTER_VARIANTS } from '@te-nuoc/shared';
 import { showHome } from '../src/ui/home';
 import { addWinStar, getActiveAccount, getPlayerStars, getRankTier } from '../src/ui/rank';
 
 describe('home screen boxes, right leaderboard, login & register forms, and pixel buttons', () => {
+  afterEach(() => vi.unstubAllGlobals());
   it('places leaderboard in a separate right panel with clean pixel buttons and no button SVG icons', () => {
     localStorage.clear();
     document.cookie = 'aqua_blast_session=; path=/; max-age=0';
@@ -26,7 +27,8 @@ describe('home screen boxes, right leaderboard, login & register forms, and pixe
     const roomBox = mainPanel?.querySelector('.home-box-room');
     expect(nameBox).not.toBeNull();
     expect(roomBox).not.toBeNull();
-    expect(lbPanel?.querySelectorAll('.lb-row').length).toBeGreaterThanOrEqual(5);
+    expect(lbPanel?.querySelectorAll('.lb-row')).toHaveLength(0);
+    expect(lbPanel?.textContent).toContain('Chưa có người chơi xếp hạng');
 
     const roomInput = roomBox?.querySelector('input') as HTMLInputElement | null;
     expect(roomInput?.value).toBe('KHVT');
@@ -36,6 +38,17 @@ describe('home screen boxes, right leaderboard, login & register forms, and pixe
     for (const btn of pixelButtons) {
       expect(btn.querySelector('svg')).toBeNull();
     }
+  });
+
+  it('shows live leaderboard data from the server instead of sample rivals', async () => {
+    localStorage.clear();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ leaderboard: [
+      { username: 'realplayer', name: 'Người thật', stars: 4, wins: 4, variant: 0 },
+    ] }) }));
+    const root = document.createElement('div');
+    showHome(root);
+    await vi.waitFor(() => expect(root.querySelectorAll('.lb-row')).toHaveLength(1));
+    expect(root.querySelector('.lb-name')?.textContent).toBe('Người thật');
   });
 
   it('switches to dedicated registration form (username, gameName, password, confirmPassword) and persists login in localStorage and cookie', () => {

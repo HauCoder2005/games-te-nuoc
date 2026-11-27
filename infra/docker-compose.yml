@@ -8,6 +8,9 @@ services:
       NODE_ENV: production
       ALLOWED_ORIGIN: ${ALLOWED_ORIGIN}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ACCOUNT_DATA_FILE: /app/data/accounts.json
+    volumes:
+      - account_data:/app/data
     expose:
       - '2567'
     restart: unless-stopped
@@ -28,3 +31,4 @@ services:
 volumes:
   caddy_data:
   caddy_config:
+  account_data:

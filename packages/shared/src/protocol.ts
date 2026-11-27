@@ -38,6 +38,6 @@ export function validateInput(raw: unknown, prev: InputFrame | null): InputFrame
   let moveX = Math.max(-1, Math.min(1, mx));
   let moveY = Math.max(-1, Math.min(1, my));
   const length = Math.hypot(moveX, moveY);
-  if (length > 0) { moveX /= length; moveY /= length; }
+  if (length > 1) { moveX /= length; moveY /= length; }
   return { seq: s, mx: moveX, my: moveY, ax, ay, th, da };
 }

@@ -12,7 +12,10 @@ function normalized(x: number, y: number): [number, number] {
 
 export function applyMoveInput(p: PlayerState, inp: InputFrame, dt: number): void {
   if (p.status === 'falling' || p.status === 'respawning') return;
-  const [dx, dy] = normalized(inp.mx, inp.my);
+  const inputLength = Math.hypot(inp.mx, inp.my);
+  const inputScale = inputLength > 1 ? 1 / inputLength : 1;
+  const dx = inp.mx * inputScale;
+  const dy = inp.my * inputScale;
   const speed = MOVE_SPEED * (p.status === 'hitstun' ? HITSTUN_CONTROL : 1);
   const blend = Math.min(1, MOVE_ACCEL * dt);
   p.mvx += (dx * speed - p.mvx) * blend;

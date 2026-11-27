@@ -1,4 +1,4 @@
-import { CHARACTER_VARIANTS, MAX_NAME_LENGTH, normalizeName } from '@te-nuoc/shared';
+import { CHARACTER_VARIANTS, LEADERBOARD_REFRESH_MS, MAX_NAME_LENGTH, normalizeName } from '@te-nuoc/shared';
 import { startPractice } from '../offline/practice';
 import { connect, mapJoinError, parseRoute } from '../net/colyseus';
 import { showRoom } from './privateLobby';
@@ -6,7 +6,7 @@ import { createCharacterAvatar } from './avatar';
 import { createIconButton } from './icons';
 import { ensureFloatingFullscreenButton } from './fullscreen';
 import {
-  formatStarIcons, getActiveAccount, getLeaderboard, getPlayerStars,
+  fetchLeaderboard, formatStarIcons, getActiveAccount, getPlayerStars,
   getPlayerWins, getRankTier, loginAccount, logoutAccount,
   registerAccount, registerOrLoginAccount, updateActiveAccountProfile,
 } from './rank';
@@ -65,8 +65,10 @@ export function showHome(root: HTMLElement): void {
   gameNameInput.value = getActiveAccount()?.gameName ?? localStorage.getItem('te-nuoc-name') ?? '';
   gameNameInput.addEventListener('input', () => {
     gameNameInput.value = Array.from(gameNameInput.value).slice(0, MAX_NAME_LENGTH).join('');
+  });
+  gameNameInput.addEventListener('change', () => {
     updateActiveAccountProfile(gameNameInput.value, selectedVariant);
-    renderLeaderboardRows();
+    void loadLeaderboard();
   });
 
   const authContainer = document.createElement('div');
@@ -102,6 +104,7 @@ export function showHome(root: HTMLElement): void {
         updateRankBanner();
         renderAuthSection();
         renderLeaderboardRows();
+        void loadLeaderboard();
       });
       logoutBtn.className = 'pixel-btn auth-logout-btn';
       loggedHeader.append(userSummary, logoutBtn);
@@ -164,6 +167,7 @@ export function showHome(root: HTMLElement): void {
         updateRankBanner();
         renderAuthSection();
         renderLeaderboardRows();
+        void loadLeaderboard();
       });
 
       passRow.append(loginPassInput, submitLogin);
@@ -230,6 +234,7 @@ export function showHome(root: HTMLElement): void {
         updateRankBanner();
         renderAuthSection();
         renderLeaderboardRows();
+        void loadLeaderboard();
       });
       submitReg.classList.add('auth-submit-full');
 
@@ -287,12 +292,20 @@ export function showHome(root: HTMLElement): void {
   lbRule.className = 'lb-rule';
   lbRule.textContent = '1 THẮNG = +1 ⭐';
   lbHeader.append(lbTitle, lbRule);
+  const refreshButton = createIconButton('refresh', 'CẬP NHẬT', () => { void loadLeaderboard(); });
+  refreshButton.className = 'lb-refresh';
+  lbHeader.append(refreshButton);
 
   const lbList = document.createElement('div');
   lbList.className = 'lb-list';
-  const renderLeaderboardRows = () => {
+  const renderLeaderboardRows = (entries: Awaited<ReturnType<typeof fetchLeaderboard>> = []) => {
     lbList.replaceChildren();
-    const entries = getLeaderboard(gameNameInput.value, selectedVariant);
+    if (entries.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'lb-empty';
+      empty.textContent = 'Chưa có người chơi xếp hạng';
+      lbList.append(empty);
+    }
     entries.forEach((entry, index) => {
       const row = document.createElement('div');
       row.className = `lb-row ${entry.isSelf ? 'lb-row-self' : ''} lb-rank-${index + 1}`;
@@ -316,6 +329,16 @@ export function showHome(root: HTMLElement): void {
       row.append(rankNum, avatarWrap, entryName, tierTag, starCount);
       lbList.append(row);
     });
+  };
+
+  const loadLeaderboard = async () => {
+    try {
+      const entries = await fetchLeaderboard();
+      renderLeaderboardRows(entries);
+      updateRankBanner();
+    } catch {
+      // Keep locally stored accounts visible while offline.
+    }
   };
 
   renderAuthSection();
@@ -391,4 +414,11 @@ export function showHome(root: HTMLElement): void {
   panel.append(nameBox, roomBox, quick, button, error);
   layout.append(panel, leaderboardPanel);
   root.append(layout);
+  void loadLeaderboard();
+  const pollLeaderboard = () => {
+    if (!layout.isConnected) return;
+    void loadLeaderboard();
+    window.setTimeout(pollLeaderboard, LEADERBOARD_REFRESH_MS);
+  };
+  window.setTimeout(pollLeaderboard, LEADERBOARD_REFRESH_MS);
 }

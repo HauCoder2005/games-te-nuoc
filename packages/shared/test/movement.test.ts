@@ -10,6 +10,11 @@ it('move velocity lerps toward MOVE_SPEED', () => {
   applyMoveInput(player, inp({ mx: 1 }), DT);
   expect(player.mvx).toBeCloseTo(MOVE_SPEED * Math.min(1, MOVE_ACCEL * DT));
 });
+it('a half-deflected joystick moves at half speed', () => {
+  const player = mkPlayer();
+  for (let i = 0; i < 60; i++) applyMoveInput(player, inp({ mx: 0.5 }), DT);
+  expect(player.mvx).toBeCloseTo(MOVE_SPEED * 0.5, 1);
+});
 it('diagonal movement is normalized and hitstun limits control', () => {
   const player = mkPlayer({ status: 'hitstun' });
   for (let i = 0; i < 60; i++) applyMoveInput(player, inp({ mx: 1, my: 1 }), DT);

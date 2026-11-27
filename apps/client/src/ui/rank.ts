@@ -34,20 +34,13 @@ export interface StoredAccount {
   variant: number;
 }
 
-const DEFAULT_RIVALS: readonly LeaderboardEntry[] = [
-  { username: 'hungthuythan', name: 'Hưng Thủy Thần', stars: 16, wins: 16, variant: 2 },
-  { username: 'maibantia', name: 'Mai Bắn Tỉa', stars: 12, wins: 12, variant: 4 },
-  { username: 'khoasongthan', name: 'Khoa Sóng Thần', stars: 9, wins: 9, variant: 0 },
-  { username: 'suthuykich', name: 'Su Thủy Kích', stars: 6, wins: 6, variant: 3 },
-  { username: 'nabongnuoc', name: 'Na Bóng Nước', stars: 3, wins: 3, variant: 1 },
-  { username: 'titapboi', name: 'Tí Tập Bơi', stars: 1, wins: 1, variant: 0 },
-];
-
 const STARS_KEY = 'aqua-blast-stars';
 const WINS_KEY = 'aqua-blast-wins';
 const ACCOUNTS_KEY = 'aqua-blast-accounts';
 const SESSION_KEY = 'aqua-blast-session';
 const COOKIE_NAME = 'aqua_blast_session';
+let pendingWin: Promise<void> = Promise.resolve();
+let pendingAccountSync: Promise<void> = Promise.resolve();
 
 function setSessionCookie(sessionKey: string): void {
   if (typeof document === 'undefined') return;
@@ -154,7 +147,7 @@ export function registerAccount(
   map[key] = created;
   saveAccountsMap(map);
   persistActiveSession(key, created);
-  void syncRegisterToServer(created, rawConfirmPassword.trim());
+  pendingAccountSync = syncRegisterToServer(created, rawConfirmPassword.trim());
   return { ok: true, account: created };
 }
 
@@ -181,7 +174,7 @@ export function loginAccount(
   map[key] = existing;
   saveAccountsMap(map);
   persistActiveSession(key, existing);
-  void syncAuthToServer(existing.username, existing.gameName, existing.password, existing.variant);
+  pendingAccountSync = syncAuthToServer(existing.username, existing.gameName, existing.password, existing.variant);
   return { ok: true, account: existing };
 }
 
@@ -199,7 +192,7 @@ export function updateActiveAccountProfile(
   map[key] = active;
   saveAccountsMap(map);
   persistActiveSession(key, active);
-  void syncAuthToServer(active.username, active.gameName, active.password, active.variant);
+  pendingAccountSync = syncAuthToServer(active.username, active.gameName, active.password, active.variant);
   return active;
 }
 
@@ -229,7 +222,7 @@ export function registerOrLoginAccount(
     map[key] = existing;
     saveAccountsMap(map);
     persistActiveSession(key, existing);
-    void syncAuthToServer(existing.username, existing.gameName, existing.password, existing.variant);
+    pendingAccountSync = syncAuthToServer(existing.username, existing.gameName, existing.password, existing.variant);
     return { ok: true, created: false, account: existing };
   }
 
@@ -244,7 +237,7 @@ export function registerOrLoginAccount(
   map[key] = created;
   saveAccountsMap(map);
   persistActiveSession(key, created);
-  void syncAuthToServer(created.username, created.gameName, created.password, created.variant);
+  pendingAccountSync = syncAuthToServer(created.username, created.gameName, created.password, created.variant);
   return { ok: true, created: true, account: created };
 }
 
@@ -271,7 +264,7 @@ function apiBaseUrl(): string {
 async function syncRegisterToServer(account: StoredAccount, confirmPassword: string): Promise<void> {
   if (typeof fetch !== 'function') return;
   try {
-    await fetch(`${apiBaseUrl()}/api/register`, {
+    const response = await fetch(`${apiBaseUrl()}/api/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -282,6 +275,7 @@ async function syncRegisterToServer(account: StoredAccount, confirmPassword: str
         variant: account.variant,
       }),
     });
+    await reconcileServerAccount(response, account.username);
   } catch {
     /* Offline fallback */
   }
@@ -290,13 +284,34 @@ async function syncRegisterToServer(account: StoredAccount, confirmPassword: str
 async function syncAuthToServer(username: string, gameName: string, password: string, variant: number): Promise<void> {
   if (typeof fetch !== 'function') return;
   try {
-    await fetch(`${apiBaseUrl()}/api/auth`, {
+    const response = await fetch(`${apiBaseUrl()}/api/auth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, gameName, password, variant }),
     });
+    await reconcileServerAccount(response, username);
   } catch {
     /* Offline fallback */
+  }
+}
+
+async function reconcileServerAccount(response: Response, username: string): Promise<void> {
+  if (!response.ok) return;
+  const data: unknown = await response.json();
+  if (typeof data !== 'object' || data === null || !('user' in data)) return;
+  const user = data.user;
+  if (typeof user !== 'object' || user === null || !('stars' in user) || !('wins' in user)
+    || typeof user.stars !== 'number' || typeof user.wins !== 'number') return;
+  const key = username.toLowerCase();
+  const map = loadAccountsMap();
+  const account = map[key];
+  if (!account) return;
+  account.stars = user.stars;
+  account.wins = user.wins;
+  saveAccountsMap(map);
+  if (getActiveAccount()?.username.toLowerCase() === key) {
+    localStorage.setItem(STARS_KEY, String(user.stars));
+    localStorage.setItem(WINS_KEY, String(user.wins));
   }
 }
 
@@ -330,11 +345,30 @@ export function addWinStar(): { stars: number; wins: number; tier: RankTier } {
       map[sessionKey] = account;
       saveAccountsMap(map);
       if (typeof fetch === 'function') {
-        void fetch(`${apiBaseUrl()}/api/rank/win`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: account.username, password: account.password }),
-        }).catch(() => {});
+        pendingWin = pendingWin.then(async () => {
+          try {
+            await pendingAccountSync;
+            const response = await fetch(`${apiBaseUrl()}/api/rank/win`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username: account.username, password: account.password }),
+            });
+            if (!response.ok) return;
+            const data: unknown = await response.json();
+            if (typeof data !== 'object' || data === null || !('user' in data)) return;
+            const user = data.user;
+            if (typeof user !== 'object' || user === null || !('stars' in user) || !('wins' in user)
+              || typeof user.stars !== 'number' || typeof user.wins !== 'number') return;
+            const latest = loadAccountsMap();
+            const stored = latest[sessionKey];
+            if (!stored) return;
+            stored.stars = user.stars;
+            stored.wins = user.wins;
+            saveAccountsMap(latest);
+            localStorage.setItem(STARS_KEY, String(user.stars));
+            localStorage.setItem(WINS_KEY, String(user.wins));
+          } catch { /* Keep local progress until the server is reachable. */ }
+        });
       }
     }
   }
@@ -355,35 +389,18 @@ export function formatStarIcons(stars: number): string {
   return `⭐ ×${stars}`;
 }
 
-export function getLeaderboard(playerName: string, playerVariant: number): LeaderboardEntry[] {
-  const active = getActiveAccount();
-  const cleanGameName = (active?.gameName ?? playerName).trim();
-  const cleanUser = (active?.username ?? cleanGameName).toLowerCase();
-  const map = loadAccountsMap();
-  const registeredEntries: LeaderboardEntry[] = Object.values(map).map((acc) => ({
-    username: acc.username,
-    name: acc.gameName,
-    stars: acc.stars,
-    wins: acc.wins,
-    variant: acc.variant,
-    isSelf: cleanUser.length > 0 && acc.username.toLowerCase() === cleanUser,
-  }));
-
-  const takenUsers = new Set(registeredEntries.map((entry) => (entry.username ?? entry.name).toLowerCase()));
-  const rivals = DEFAULT_RIVALS.filter((entry) => !takenUsers.has((entry.username ?? entry.name).toLowerCase()));
-  const all: LeaderboardEntry[] = [...rivals, ...registeredEntries];
-
-  if (cleanGameName && !takenUsers.has(cleanUser)) {
-    all.push({
-      username: cleanGameName,
-      name: cleanGameName,
-      stars: getPlayerStars(),
-      wins: getPlayerWins(),
-      variant: playerVariant,
-      isSelf: true,
-    });
+export async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
+  await Promise.all([pendingAccountSync, pendingWin]);
+  const response = await fetch(`${apiBaseUrl()}/api/leaderboard`, { cache: 'no-store' });
+  if (!response.ok) throw new Error('Không tải được bảng xếp hạng');
+  const data: unknown = await response.json();
+  if (typeof data !== 'object' || data === null || !('leaderboard' in data) || !Array.isArray(data.leaderboard)) {
+    throw new Error('Dữ liệu bảng xếp hạng không hợp lệ');
   }
-
-  all.sort((a, b) => b.stars - a.stars || (a.isSelf ? -1 : 1));
-  return all.slice(0, 7);
+  const ownUsername = getActiveAccount()?.username.toLowerCase();
+  return data.leaderboard.filter((value): value is LeaderboardEntry =>
+    typeof value === 'object' && value !== null && typeof value.name === 'string'
+    && typeof value.username === 'string' && typeof value.stars === 'number'
+    && typeof value.wins === 'number' && typeof value.variant === 'number',
+  ).map((entry) => ({ ...entry, isSelf: entry.username?.toLowerCase() === ownUsername }));
 }

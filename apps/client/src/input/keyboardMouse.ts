@@ -1,8 +1,16 @@
-import { BALLOON_RANGE_MAX } from '@te-nuoc/shared';
+import { BALLOON_RANGE_MAX, JOYSTICK_DEADZONE_PX, VIEW_H, VIEW_W } from '@te-nuoc/shared';
 import type { InputFrame } from '@te-nuoc/shared';
 import { createDashBoltIcon, createDualSwordsIcon } from '../ui/fullscreen';
 
 export interface InputSource { sample(): InputFrame; destroy(): void }
+
+export function joystickVector(dx: number, dy: number, radius: number): { mx: number; my: number; knobX: number; knobY: number } {
+  const distance = Math.hypot(dx, dy);
+  if (distance <= JOYSTICK_DEADZONE_PX) return { mx: 0, my: 0, knobX: 0, knobY: 0 };
+  const travel = Math.min(radius, distance);
+  const factor = travel / distance;
+  return { mx: dx * factor / radius, my: dy * factor / radius, knobX: dx * factor, knobY: dy * factor };
+}
 
 export function createInput(
   target: Window,
@@ -26,6 +34,8 @@ export function createInput(
   const clear = () => {
     held.clear();
     touchMove = { mx: 0, my: 0 };
+    joyTouchId = null;
+    joyKnob?.style.setProperty('transform', 'translate(0px, 0px)');
   };
   const visibility = () => { if (target.document.hidden) clear(); };
   const mouse = (event: MouseEvent) => {
@@ -43,7 +53,6 @@ export function createInput(
   let touchUi: HTMLDivElement | null = null;
   let joyTouchId: number | null = null;
   let joyOrigin = { x: 0, y: 0 };
-  const JOY_MAX_R = 44;
 
   const isTouchDevice = (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0)
     || 'ontouchstart' in target;
@@ -56,8 +65,8 @@ export function createInput(
     const ox = own?.x ?? 320;
     const oy = own?.y ?? 199;
     aim = {
-      x: Math.max(0, Math.min(640, ox + dx * (BALLOON_RANGE_MAX * 0.75))),
-      y: Math.max(0, Math.min(360, oy + dy * (BALLOON_RANGE_MAX * 0.75))),
+      x: Math.max(0, Math.min(VIEW_W, ox + dx * (BALLOON_RANGE_MAX * 0.75))),
+      y: Math.max(0, Math.min(VIEW_H, oy + dy * (BALLOON_RANGE_MAX * 0.75))),
     };
   };
 
@@ -101,22 +110,22 @@ export function createInput(
       const dx = clientX - joyOrigin.x;
       const dy = clientY - joyOrigin.y;
       const dist = Math.hypot(dx, dy);
-      const clamped = Math.min(JOY_MAX_R, dist);
-      const nx = dist > 4 ? dx / dist : 0;
-      const ny = dist > 4 ? dy / dist : 0;
-      touchMove = { mx: nx, my: ny };
-      if (nx !== 0 || ny !== 0) {
-        joyAimDir = { dx: nx, dy: ny };
-        updateAimFromDir(nx, ny);
+      const radius = Math.max(1, (joyBase.getBoundingClientRect().width - (joyKnob?.getBoundingClientRect().width ?? 0)) / 2);
+      const vector = joystickVector(dx, dy, radius);
+      touchMove = { mx: vector.mx, my: vector.my };
+      if (dist > JOYSTICK_DEADZONE_PX) {
+        joyAimDir = { dx: dx / dist, dy: dy / dist };
+        updateAimFromDir(joyAimDir.dx, joyAimDir.dy);
       }
       if (joyKnob) {
-        joyKnob.style.transform = `translate(${Math.round(nx * clamped)}px, ${Math.round(ny * clamped)}px)`;
+        joyKnob.style.transform = `translate(${Math.round(vector.knobX)}px, ${Math.round(vector.knobY)}px)`;
       }
     };
 
     joyZone.addEventListener('touchstart', (event) => {
       event.preventDefault();
       event.stopPropagation();
+      if (joyTouchId !== null) return;
       const t = event.changedTouches[0];
       if (!t) return;
       joyTouchId = t.identifier;
@@ -157,14 +166,17 @@ export function createInput(
     throwBtn.className = 'touch-btn touch-btn-throw';
     throwBtn.setAttribute('aria-label', 'Ném bóng nước');
     throwBtn.append(createDualSwordsIcon());
+    let lastThrowTouch = -Infinity;
     throwBtn.addEventListener('touchstart', (event) => {
       event.preventDefault();
       event.stopPropagation();
+      lastThrowTouch = performance.now();
       if (joyAimDir) updateAimFromDir(joyAimDir.dx, joyAimDir.dy);
       th++;
     }, { passive: false });
     throwBtn.addEventListener('click', (event) => {
       event.preventDefault();
+      if (performance.now() - lastThrowTouch < 500) return;
       if (joyAimDir) updateAimFromDir(joyAimDir.dx, joyAimDir.dy);
       th++;
     });
@@ -175,14 +187,17 @@ export function createInput(
     dashBtn.className = 'touch-btn touch-btn-dash';
     dashBtn.setAttribute('aria-label', 'Húc tốc biến');
     dashBtn.append(createDashBoltIcon());
+    let lastDashTouch = -Infinity;
     dashBtn.addEventListener('touchstart', (event) => {
       event.preventDefault();
       event.stopPropagation();
+      lastDashTouch = performance.now();
       if (joyAimDir) updateAimFromDir(joyAimDir.dx, joyAimDir.dy);
       da++;
     }, { passive: false });
     dashBtn.addEventListener('click', (event) => {
       event.preventDefault();
+      if (performance.now() - lastDashTouch < 500) return;
       if (joyAimDir) updateAimFromDir(joyAimDir.dx, joyAimDir.dy);
       da++;
     });
@@ -210,8 +225,8 @@ export function createInput(
       const mx = kbMx !== 0 || kbMy !== 0 ? kbMx : touchMove.mx;
       const my = kbMx !== 0 || kbMy !== 0 ? kbMy : touchMove.my;
       const length = Math.hypot(mx, my);
-      const normMx = length ? mx / length : 0;
-      const normMy = length ? my / length : 0;
+      const normMx = length > 1 ? mx / length : mx;
+      const normMy = length > 1 ? my / length : my;
       if (joyAimDir) {
         updateAimFromDir(joyAimDir.dx, joyAimDir.dy);
       } else if (normMx !== 0 || normMy !== 0) {

@@ -1,5 +1,7 @@
 export const VIEW_W = 640;
 export const VIEW_H = 360;
+export const JOYSTICK_DEADZONE_PX = 4;
+export const LEADERBOARD_REFRESH_MS = 5000;
 export const TILE = 16;
 export const DT = 1 / 30;
 export const LOBBY_TICK_MS = 100;

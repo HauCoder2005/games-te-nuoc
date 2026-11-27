@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it } from 'vitest';
-import { createInput } from '../src/input/keyboardMouse';
+import { createInput, joystickVector } from '../src/input/keyboardMouse';
+import { fitGameViewport } from '../src/render/renderer';
 import { isTouchOnly } from '../src/ui/home';
 
 const sources: { destroy(): void }[] = [];
@@ -48,6 +49,17 @@ it('touch-only devices are detected', () => {
   expect(isTouchOnly({ maxTouchPoints: 5 }, () => false)).toBe(true);
   expect(isTouchOnly({ maxTouchPoints: 0 }, () => true)).toBe(false);
 });
+it('joystick has a dead zone and proportional travel', () => {
+  expect(joystickVector(2, 0, 40)).toEqual({ mx: 0, my: 0, knobX: 0, knobY: 0 });
+  expect(joystickVector(20, 0, 40).mx).toBeCloseTo(0.5);
+  expect(joystickVector(80, 0, 40).mx).toBe(1);
+});
+it('game viewport keeps the 16:9 map inside a landscape phone', () => {
+  const fit = fitGameViewport(844, 390);
+  expect(fit.width / fit.height).toBeCloseTo(640 / 360, 2);
+  expect(fit.width).toBeLessThanOrEqual(844);
+  expect(fit.height).toBeLessThanOrEqual(390);
+});
 it('creates mobile touch action buttons on touch devices and increments throw/dash', () => {
   const wrapper = document.createElement('div');
   const canvas = document.createElement('canvas');
@@ -72,5 +84,9 @@ it('creates mobile touch action buttons on touch devices and increments throw/da
   const sample = source.sample();
   expect(sample.th).toBe(1);
   expect(sample.da).toBe(1);
+  const touch = new Event('touchstart', { bubbles: true, cancelable: true });
+  throwBtn?.dispatchEvent(touch);
+  throwBtn?.click();
+  expect(source.sample().th).toBe(2);
   Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
 });

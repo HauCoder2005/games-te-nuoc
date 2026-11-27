@@ -16,6 +16,9 @@ it('clamps and normalizes direction', () => {
   const frame = validateInput(raw({ mx: 5, my: 5 }), null);
   expect(frame).toMatchObject({ seq: 1, mx: expect.closeTo(Math.SQRT1_2), my: expect.closeTo(Math.SQRT1_2) });
 });
+it('preserves partial joystick travel', () => {
+  expect(validateInput(raw({ mx: 0.5, my: 0 }), null)?.mx).toBeCloseTo(0.5);
+});
 it('rejects invalid aim and noninteger counters', () => {
   expect(validateInput(raw({ ax: 641 }), null)).toBeNull();
   expect(validateInput(raw({ ay: -1 }), null)).toBeNull();
