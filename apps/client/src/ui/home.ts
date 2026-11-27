@@ -35,14 +35,6 @@ export function showHome(root: HTMLElement): void {
   const leaderboardPanel = document.createElement('aside');
   leaderboardPanel.className = 'home-leaderboard-panel home-box-leaderboard';
 
-  if (isTouchOnly(navigator, (query) => window.matchMedia(query).matches)) {
-    const notice = document.createElement('p');
-    notice.textContent = 'Game cần bàn phím và chuột';
-    panel.append(notice);
-    root.append(panel);
-    return;
-  }
-
   let selectedVariant = getStoredVariant();
   let authTab: 'login' | 'register' = 'login';
 

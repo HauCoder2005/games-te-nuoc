@@ -48,3 +48,24 @@ it('touch-only devices are detected', () => {
   expect(isTouchOnly({ maxTouchPoints: 5 }, () => false)).toBe(true);
   expect(isTouchOnly({ maxTouchPoints: 0 }, () => true)).toBe(false);
 });
+it('creates mobile touch action buttons on touch devices and increments throw/dash', () => {
+  const wrapper = document.createElement('div');
+  const canvas = document.createElement('canvas');
+  wrapper.append(canvas);
+  document.body.append(wrapper);
+  Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
+  const source = createInput(window, canvas, (x, y) => ({ x, y }));
+  sources.push(source);
+
+  const throwBtn = wrapper.querySelector<HTMLButtonElement>('.touch-btn-throw');
+  const dashBtn = wrapper.querySelector<HTMLButtonElement>('.touch-btn-dash');
+  expect(throwBtn).not.toBeNull();
+  expect(dashBtn).not.toBeNull();
+
+  throwBtn?.click();
+  dashBtn?.click();
+  const sample = source.sample();
+  expect(sample.th).toBe(1);
+  expect(sample.da).toBe(1);
+  Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
+});

@@ -2,12 +2,34 @@
 
 :root { font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif; color: #e9fcff; background: #2b1e2f; }
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; }
-#app { min-height: 100vh; display: grid; place-items: center; padding: 18px 12px; }
-.game-stack { position: relative; flex: none; }
-.game-stack canvas { position: absolute; inset: 0; display: block; }
+body { margin: 0; min-width: 320px; overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
+#app { min-height: 100vh; min-height: 100dvh; width: 100vw; display: grid; place-items: center; padding: 14px 10px; }
+.game-stack { position: relative; flex: none; touch-action: none; }
+.game-stack canvas { position: absolute; inset: 0; display: block; touch-action: none; }
 .game-stack canvas:first-child { image-rendering: pixelated; }
 .game-stack canvas:last-child { pointer-events: none; }
+
+/* Portrait mobile rotate-to-landscape prompt */
+.rotate-overlay { display: none; position: fixed; inset: 0; z-index: 9999; background: #181020; color: #ffe066; align-items: center; justify-content: center; text-align: center; padding: 24px; }
+.rotate-box { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 28px 24px; background: #231629; border: 3px solid #ffd700; box-shadow: 6px 6px 0 #0d0812; max-width: 320px; }
+.rotate-phone-graphic { width: 64px; height: 36px; border: 3px solid #ffd700; background: #31223a; position: relative; animation: tilt-landscape 1.6s infinite ease-in-out; }
+.rotate-phone-graphic::after { content: ''; position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 4px; height: 10px; background: #ffd700; }
+@keyframes tilt-landscape { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-90deg); } }
+.rotate-title { font-size: 20px; font-weight: 900; color: #ffd700; letter-spacing: 1px; }
+.rotate-sub { font-size: 14px; font-weight: 700; color: #e9fcff; line-height: 1.4; }
+@media (max-width: 650px) and (orientation: portrait) {
+  .rotate-overlay { display: flex; }
+}
+
+/* Mobile virtual joystick & action buttons */
+.mobile-touch-controls { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+.touch-joystick-zone { position: absolute; left: 18px; bottom: 38px; width: 120px; height: 120px; pointer-events: auto; display: flex; align-items: center; justify-content: center; touch-action: none; }
+.touch-joystick-base { width: 96px; height: 96px; background: rgba(35, 22, 41, 0.55); border: 3px solid rgba(255, 207, 68, 0.75); display: flex; align-items: center; justify-content: center; }
+.touch-joystick-knob { width: 42px; height: 42px; background: rgba(255, 207, 68, 0.9); border: 3px solid #181020; box-shadow: 2px 2px 0 #140c1c; }
+.touch-action-buttons { position: absolute; right: 18px; bottom: 42px; display: flex; gap: 14px; align-items: flex-end; pointer-events: auto; }
+.touch-btn { width: 64px; height: 64px; padding: 0; font-size: 15px; font-weight: 900; display: flex; align-items: center; justify-content: center; opacity: 0.88; touch-action: none; }
+.touch-btn-throw { width: 74px; height: 74px; background: #e53b3b; color: #ffffff; box-shadow: inset 2px 2px 0 #ff8585, inset -2px -2px 0 #9e1f1f, 4px 4px 0 #140c1c; }
+.touch-btn-dash { background: #3b8bf0; color: #ffffff; box-shadow: inset 2px 2px 0 #78c6ff, inset -2px -2px 0 #1f579e, 4px 4px 0 #140c1c; }
 
 /* Pixel-art layout & containers */
 .home-layout { width: min(1040px, 96vw); display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr); gap: 22px; align-items: stretch; }
@@ -76,7 +98,24 @@ button:hover { background: #ffe066; }
 button:active { transform: translate(2px, 2px); box-shadow: inset 2px 2px 0 #d99b16, 2px 2px 0 #140c1c; }
 
 .home p { margin: 0; font-size: 16px; font-weight: 700; }
-.practice { position: relative; }
+.practice { position: relative; width: 100vw; height: 100vh; height: 100dvh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+#app:has(.practice) { padding: 0; overflow: hidden; }
+
+/* Full-bleed mobile landscape responsive adjustments */
+@media (max-height: 540px) and (orientation: landscape) {
+  #app { padding: 0; align-items: stretch; justify-items: stretch; }
+  .home-layout { width: 100vw; min-height: 100dvh; gap: 8px; padding: 6px; grid-template-columns: minmax(0, 1.35fr) minmax(250px, 0.85fr); }
+  .home, .home-leaderboard-panel { padding: 10px 12px; gap: 8px; box-shadow: 3px 3px 0 #110b16; }
+  .home h1 { font-size: 38px; }
+  .home-box { padding: 8px 10px; gap: 6px; }
+  .char-portrait { width: 30px; height: 36px; }
+  .char-card { padding: 4px 2px; }
+  .char-card-label { font-size: 12px; }
+  .char-card-role { font-size: 9px; }
+  .home input { padding: 5px 8px; font-size: 14px; }
+  button { padding: 6px 10px; font-size: 14px; }
+  .online { width: 100vw; min-height: 100dvh; padding: 10px 14px; border: 0; }
+}
 .hud { position: absolute; inset: 0; pointer-events: none; font-size: 15px; font-weight: 800; text-shadow: 2px 2px #181020, -1px -1px #181020; }
 .score { position: absolute; top: 4px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; font-size: 22px; font-weight: 900; white-space: nowrap; }
 .score span { min-width: 100px; padding: 2px 10px; text-align: center; border: 3px solid #181020; box-shadow: 3px 3px 0 #140c1c; border-radius: 0; }

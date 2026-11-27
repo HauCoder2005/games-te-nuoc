@@ -14,8 +14,9 @@ export function drawNameTags(
   players: PlayerState[],
   viewerSlot: number,
   names: ReadonlyMap<number, string> | undefined,
-  scale: number,
+  scaleX: number,
   pixelRatio: number,
+  scaleY = scaleX,
 ): void {
   const viewerTeam = players.find((player) => player.slot === viewerSlot)?.team ?? null;
   const visible = new Set(visibleNameTags(players, viewerTeam));
@@ -30,8 +31,8 @@ export function drawNameTags(
     const name = names?.get(player.slot) ?? `#${player.slot}`;
     const isSelf = player.slot === viewerSlot;
     const label = isSelf ? `${name} (bạn)` : name;
-    const x = player.x * scale * pixelRatio;
-    const y = (player.y - 25) * scale * pixelRatio;
+    const x = player.x * scaleX * pixelRatio;
+    const y = (player.y - 25) * scaleY * pixelRatio;
     context.strokeStyle = '#181020';
     context.fillStyle = isSelf ? SELF_NAME_COLOR : TEAM_NAME_COLORS[player.team];
     context.strokeText(label, x, y);

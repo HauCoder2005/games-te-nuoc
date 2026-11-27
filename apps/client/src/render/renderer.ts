@@ -252,16 +252,38 @@ export function createRenderer(canvas: HTMLCanvasElement, overlay: HTMLCanvasEle
   canvas.width = VIEW_W; canvas.height = VIEW_H;
   context.imageSmoothingEnabled = false;
   const effects = new Effects();
-  let scale = 0;
+  let scaleX = 0;
+  let scaleY = 0;
   let pixelRatio = 0;
+  let lastWinW = 0;
+  let lastWinH = 0;
 
   function resize(): void {
-    const nextScale = integerScale(window.innerWidth, window.innerHeight);
+    const winW = window.innerWidth || VIEW_W;
+    const winH = window.innerHeight || VIEW_H;
     const nextRatio = window.devicePixelRatio || 1;
-    if (nextScale === scale && nextRatio === pixelRatio) return;
-    scale = nextScale; pixelRatio = nextRatio;
-    const width = VIEW_W * scale;
-    const height = VIEW_H * scale;
+    if (winW === lastWinW && winH === lastWinH && nextRatio === pixelRatio) return;
+    lastWinW = winW; lastWinH = winH; pixelRatio = nextRatio;
+
+    const isMobileOrCompact = (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0)
+      || winW <= 1024 || winH <= 600;
+
+    let width: number;
+    let height: number;
+    if (isMobileOrCompact) {
+      // Full-bleed edge-to-edge screen coverage on mobile landscape
+      width = winW;
+      height = winH;
+      scaleX = width / VIEW_W;
+      scaleY = height / VIEW_H;
+    } else {
+      const s = integerScale(winW, winH);
+      scaleX = s;
+      scaleY = s;
+      width = VIEW_W * s;
+      height = VIEW_H * s;
+    }
+
     canvas.parentElement?.style.setProperty('width', `${width}px`);
     canvas.parentElement?.style.setProperty('height', `${height}px`);
     for (const item of [canvas, overlay]) {
@@ -333,7 +355,7 @@ export function createRenderer(canvas: HTMLCanvasElement, overlay: HTMLCanvasEle
       }
       effects.draw(context, bank, view.time);
       overlayContext.clearRect(0, 0, overlay.width, overlay.height);
-      drawNameTags(overlayContext, view.players, viewerSlot, view.names, scale, pixelRatio);
+      drawNameTags(overlayContext, view.players, viewerSlot, view.names, scaleX, pixelRatio, scaleY);
     },
     pushEvents(events, now) { effects.push(events, now); },
   };
