@@ -232,7 +232,7 @@ export function showHome(root: HTMLElement): void {
   lbRule.textContent = 'Thắng 1 trận = +1 ⭐';
   const lbSub = document.createElement('div');
   lbSub.className = 'lb-subtitle';
-  lbSub.textContent = 'Đăng ký nhanh Username + Mật khẩu bên phải để lưu Sao & đua Top!';
+  lbSub.textContent = 'Đăng ký nhanh Username + Mật khẩu bên trái để lưu Sao & đua Top!';
   lbHeader.append(lbTitle, lbRule, lbSub);
 
   const lbList = document.createElement('div');
@@ -272,6 +272,6 @@ export function showHome(root: HTMLElement): void {
   leaderboardPanel.append(lbHeader, lbList);
 
   panel.append(nameBox, roomBox, quick, button, error);
-  layout.append(leaderboardPanel, panel);
+  layout.append(panel, leaderboardPanel);
   root.append(layout);
 }

@@ -3,21 +3,22 @@
 :root { font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif; color: #e9fcff; background: #2b1e2f; }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; }
-#app { min-height: 100vh; display: grid; place-items: center; padding: 12px 0; }
+#app { min-height: 100vh; display: grid; place-items: center; padding: 20px 12px; }
 .game-stack { position: relative; flex: none; }
 .game-stack canvas { position: absolute; inset: 0; display: block; }
 .game-stack canvas:first-child { image-rendering: pixelated; }
 .game-stack canvas:last-child { pointer-events: none; }
-.home-layout { width: min(1040px, 96vw); display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 22px; align-items: start; }
-@media (max-width: 860px) { .home-layout { grid-template-columns: 1fr; } }
-.home-leaderboard-panel { width: 100%; padding: 22px 20px; display: flex; flex-direction: column; gap: 14px; background: linear-gradient(180deg, #2d1e38 0%, #1e1326 100%); border: 3px solid #ffd700; box-shadow: 8px 8px 0 #111; border-radius: 6px; }
-.home { width: 100%; padding: 26px 30px; display: flex; flex-direction: column; gap: 15px; text-align: center; background: #231629; border: 3px solid #e9fcff; box-shadow: 8px 8px 0 #111; border-radius: 6px; }
+.home-layout { width: min(1060px, 96vw); display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(340px, 0.95fr); gap: 24px; align-items: stretch; }
+@media (max-width: 900px) { .home-layout { grid-template-columns: 1fr; } }
+.home-leaderboard-panel { width: 100%; padding: 24px 22px; display: flex; flex-direction: column; gap: 14px; background: linear-gradient(180deg, #2d1e38 0%, #1e1326 100%); border: 3px solid #ffd700; box-shadow: 8px 8px 0 #111; border-radius: 6px; }
+.home { width: 100%; padding: 26px 28px; display: flex; flex-direction: column; gap: 14px; text-align: center; background: #231629; border: 3px solid #e9fcff; box-shadow: 8px 8px 0 #111; border-radius: 6px; }
 .home h1 { margin: 0; font-family: 'VT323', monospace; color: #ffb35c; text-shadow: 3px 3px 0 #e53b3b; font-size: 68px; line-height: 1; }
 .home-box { width: 100%; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; background: #31223a; border: 2px solid #6ec1ff; border-radius: 8px; }
 .home-box-name { border-color: #ffcf44; }
 .home-box-room { border-color: #6ec1ff; }
 .auth-grid { width: 100%; display: flex; flex-direction: column; gap: 10px; }
 .auth-pass-row { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: stretch; }
+.auth-pass-row button { white-space: nowrap; padding: 9px 14px; font-size: 15px; }
 .auth-status { font-size: 13px; font-weight: 700; color: #7cf29c; text-align: left; background: #231629; padding: 6px 10px; border-radius: 6px; border: 1px solid #453255; }
 .home label { width: 100%; display: flex; flex-direction: column; gap: 6px; font-size: 16px; font-weight: 700; color: #ffe066; text-align: left; }
 .home-box-room label { color: #7fd4ff; }

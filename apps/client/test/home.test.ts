@@ -5,7 +5,7 @@ import { showHome } from '../src/ui/home';
 import { addWinStar, getActiveAccount, getPlayerStars, getRankTier, registerOrLoginAccount } from '../src/ui/rank';
 
 describe('home screen boxes, left leaderboard, quick auth, and Lucide button icons', () => {
-  it('places leaderboard in a separate left panel and adds Lucide SVG icons to buttons', () => {
+  it('places leaderboard in a separate right panel and adds Lucide SVG icons to buttons', () => {
     const root = document.createElement('div');
     location.hash = '#/r/khvt';
     showHome(root);
@@ -17,8 +17,8 @@ describe('home screen boxes, left leaderboard, quick auth, and Lucide button ico
     expect(layout).not.toBeNull();
     expect(lbPanel).not.toBeNull();
     expect(mainPanel).not.toBeNull();
-    expect(layout?.firstElementChild).toBe(lbPanel);
-    expect(layout?.lastElementChild).toBe(mainPanel);
+    expect(layout?.firstElementChild).toBe(mainPanel);
+    expect(layout?.lastElementChild).toBe(lbPanel);
 
     const nameBox = mainPanel?.querySelector('.home-box-name');
     const roomBox = mainPanel?.querySelector('.home-box-room');
